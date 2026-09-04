@@ -119,6 +119,10 @@ tr:hover td{background:var(--bgH)}
 .badge-red{background:var(--red-bg);color:var(--red)}
 .badge-blue{background:var(--blue-bg);color:var(--blue)}
 .badge-gold{background:var(--gold-bg);color:var(--gold)}
+.badge-gray{background:var(--bgI);color:var(--tx2)}
+.row-off{opacity:.5}
+.btn-icon.ok:hover{color:var(--green)}
+.stars{color:var(--gold);font-size:.8rem;letter-spacing:1px}
 
 /* MODAL */
 .modal-ov{position:fixed;inset:0;background:var(--bgM);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px}
@@ -251,9 +255,9 @@ const AUTH_E='nenujolof@gmail.com',AUTH_P='NenuJolof2025',DB='nj_data';
 const CATS=['Transport','Loyer','Salaires','Électricité','Fournitures','Téléphone','Emballage','Divers'];
 
 /* ===== STATE ===== */
-let S,selMonth,curPage='dashboard',DL=null,pendConf=null,searchQ='',filterType='all',filterDebt='all';
+let S,selMonth,curPage='dashboard',DL=null,pendConf=null,searchQ='',filterType='all',filterDebt='all',filterStat='all';
 
-function defaults(){return{initialStock:null,clients:[],debts:[],expenses:[],receptions:[],daily:[],sales:[]}}
+function defaults(){return{initialStock:null,initialStockDate:null,clients:[],debts:[],expenses:[],receptions:[],daily:[],sales:[]}}
 function load(){try{const d=localStorage.getItem(DB);return d?JSON.parse(d):defaults()}catch(e){return defaults()}}
 function save(){try{localStorage.setItem(DB,JSON.stringify(S))}catch(e){toast('Erreur de sauvegarde','err')}}
 
@@ -319,13 +323,35 @@ function chgMonth(d){
 function getOpening(date){
   const prev=S.daily.filter(d=>d.date<date&&d.closingStock!=null).sort((a,b)=>b.date.localeCompare(a.date));
   if(prev.length)return prev[0].closingStock;
+  if(S.initialStockDate&&date<S.initialStockDate)return null;
   return S.initialStock;
 }
+function lastReception(){const l=[...S.receptions].sort((a,b)=>b.date.localeCompare(a.date));return l[0]||null}
+function daysAgo(d){return Math.round((new Date(today()+'T12:00:00')-new Date(d+'T12:00:00'))/86400000)}
+function agoLabel(d){const n=daysAgo(d);return n===0?"aujourd'hui":n===1?'hier':n>0?`il y a ${n} jours`:`dans ${-n} jours`}
 function getReceived(date){return S.receptions.filter(r=>r.date===date).reduce((s,r)=>s+r.quantity,0)}
 function getLatestCost(){
   const sorted=[...S.receptions].sort((a,b)=>b.date.localeCompare(a.date));
   return sorted.length?sorted[0].costPrice:0;
 }
+/* ===== CLIENT HELPERS ===== */
+const LOYAL_MO=3;
+const TYPES=[{v:'final',l:'Client final',p:'Clients finaux',s:'Final',b:'badge-blue'},{v:'boutiquier',l:'Boutiquier',p:'Boutiquiers',s:'Boutiquier',b:'badge-gold'},{v:'grossiste',l:'Grossiste',p:'Grossistes',s:'Grossiste',b:'badge-green'}];
+function countType(v){return S.clients.filter(c=>clientType(c).v===v).length}
+function clientType(c){return TYPES.find(x=>x.v===c.type)||TYPES[0]}
+function typeLabel(c){return clientType(c).l}
+function typeBadge(c){const t=clientType(c);return `<span class="badge ${t.b}">${t.l}</span>`}
+function typeOpts(sel){return TYPES.map(x=>`<option value="${x.v}" ${x.v===sel?'selected':''}>${x.l}</option>`).join('')}
+function isActive(c){return (c.status||'actif')==='actif'}
+function activeClients(){return S.clients.filter(isActive)}
+function monthsSince(d){if(!d)return 0;const dt=new Date(d.length===10?d+'T12:00:00':d);if(isNaN(dt))return 0;return Math.max(0,Math.floor((Date.now()-dt.getTime())/2629800000))}
+function clientAge(c){return monthsSince(c.since||c.createdAt)}
+function isLoyal(c){return isActive(c)&&clientAge(c)>=LOYAL_MO}
+function loyaltyStars(c){if(!isActive(c))return'';const m=clientAge(c);return m>=12?'★★★':m>=6?'★★':m>=LOYAL_MO?'★':''}
+function ageLabel(m){if(m<1)return'< 1 mois';if(m<12)return m+' mois';const y=Math.floor(m/12),r=m%12;return y+' an'+(y>1?'s':'')+(r?' '+r+' m':'')}
+function weeklyDemand(){return activeClients().reduce((s,c)=>s+(c.weeklyTrays||0),0)}
+function dormantDemand(){return S.clients.filter(c=>!isActive(c)).reduce((s,c)=>s+(c.weeklyTrays||0),0)}
+function dailyDemand(){return weeklyDemand()/7}
 function getCurrentStock(){
   const sorted=[...S.daily].filter(d=>d.closingStock!=null).sort((a,b)=>b.date.localeCompare(a.date));
   if(sorted.length)return sorted[0].closingStock;return S.initialStock??0;
@@ -355,11 +381,13 @@ function rDash(){
   const days=[];
   for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');const entry=S.daily.find(e=>e.date===ds);const op=getOpening(ds);const rec=getReceived(ds);let sold=0;if(entry&&entry.closingStock!=null&&op!=null)sold=op+rec-entry.closingStock;days.push({label:d.toLocaleDateString('fr-FR',{weekday:'short'}),sold:Math.max(sold,0)})}
   const mx=Math.max(...days.map(d=>d.sold),1);
+  const dDem=dailyDemand(),cover=dDem>0?getCurrentStock()/dDem:null;
 
   document.getElementById('pg-dashboard').innerHTML=`
     <div class="pg-hd"><h1>Tableau de bord</h1><span style="color:var(--tx2);font-size:.9rem">${moLabel(mo)}</span></div>
     <div class="stats">
       <div class="st gold"><div class="st-v">${getCurrentStock()}</div><div class="st-l">Stock actuel (plateaux)</div></div>
+      <div class="st ${cover==null?'blue':cover<3?'red':cover<7?'gold':'green'}"><div class="st-v">${cover==null?'—':cover.toFixed(1)+' j'}</div><div class="st-l">Couverture (${weeklyDemand()} plateaux/sem.)</div></div>
       <div class="st green"><div class="st-v">${moSold}</div><div class="st-l">Vendus ce mois</div></div>
       <div class="st blue"><div class="st-v">${cfa(totalRev)}</div><div class="st-l">Chiffre d'affaires</div></div>
       <div class="st green"><div class="st-v">${cfa(totalMargin)}</div><div class="st-l">Marge brute</div></div>
@@ -370,7 +398,7 @@ function rDash(){
       <div class="chart-wrap">${days.map(d=>`<div class="chart-col"><span class="chart-v">${d.sold}</span><div class="chart-bar" style="height:${(d.sold/mx)*100}%"></div><span class="chart-l">${d.label}</span></div>`).join('')}</div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-      <div class="card"><h3>Clients</h3><div style="font-size:2rem;font-weight:700;font-family:Outfit">${S.clients.length}</div><div style="color:var(--tx2);font-size:.85rem">${S.clients.filter(c=>c.type==='grossiste').length} grossistes · ${S.clients.filter(c=>c.type==='final').length} finaux</div></div>
+      <div class="card"><h3>Clients actifs</h3><div style="font-size:2rem;font-weight:700;font-family:Outfit">${activeClients().length}<span style="font-size:1rem;color:var(--tx2);font-weight:400"> / ${S.clients.length}</span></div><div style="color:var(--tx2);font-size:.85rem">${S.clients.filter(isLoyal).length} fidèles ★ · ${S.clients.length-activeClients().length} inactifs · ${weeklyDemand()} plateaux/sem.</div></div>
       <div class="card"><h3>Dettes actives</h3><div style="font-size:2rem;font-weight:700;font-family:Outfit">${S.debts.filter(d=>debtStatus(d)==='en_cours').length}</div><div style="color:var(--tx2);font-size:.85rem">sur ${S.debts.length} total</div></div>
     </div>`;
 }
@@ -380,28 +408,42 @@ function rClients(){
   let list=S.clients;
   if(searchQ)list=list.filter(c=>c.name.toLowerCase().includes(searchQ.toLowerCase())||c.phone.includes(searchQ));
   if(filterType!=='all')list=list.filter(c=>c.type===filterType);
+  if(filterStat==='actif')list=list.filter(isActive);
+  else if(filterStat==='inactif')list=list.filter(c=>!isActive(c));
+  else if(filterStat==='fidele')list=list.filter(isLoyal);
+  list=[...list].sort((a,b)=>(isActive(b)-isActive(a))||(clientAge(b)-clientAge(a)));
+  const nAct=activeClients().length,nInact=S.clients.length-nAct,nFid=S.clients.filter(isLoyal).length;
   const pg=document.getElementById('pg-clients');
   pg.innerHTML=`
     <div class="pg-hd"><h1>Clients</h1><button class="btn btn-p" onclick="addClient()">+ Nouveau client</button></div>
     <div class="stats">
       <div class="st gold"><div class="st-v">${S.clients.length}</div><div class="st-l">Total clients</div></div>
-      <div class="st green"><div class="st-v">${S.clients.filter(c=>c.type==='grossiste').length}</div><div class="st-l">Grossistes</div></div>
-      <div class="st blue"><div class="st-v">${S.clients.filter(c=>c.type==='final').length}</div><div class="st-l">Clients finaux</div></div>
+      <div class="st green"><div class="st-v">${nAct}</div><div class="st-l">Actifs</div></div>
+      <div class="st red"><div class="st-v">${nInact}</div><div class="st-l">Inactifs${dormantDemand()>0?` · ${dormantDemand()} pl./sem. perdus`:''}</div></div>
+      <div class="st gold"><div class="st-v">${nFid} ★</div><div class="st-l">Fidèles (${LOYAL_MO} mois et +)</div></div>
+      <div class="st blue"><div class="st-v">${weeklyDemand()}</div><div class="st-l">Plateaux / semaine (actifs)</div></div>
     </div>
     <div class="pills">
-      <button class="pill ${filterType==='all'?'active':''}" onclick="filterType='all';rClients()">Tous</button>
-      <button class="pill ${filterType==='grossiste'?'active':''}" onclick="filterType='grossiste';rClients()">Grossistes</button>
-      <button class="pill ${filterType==='final'?'active':''}" onclick="filterType='final';rClients()">Clients finaux</button>
+      <button class="pill ${filterStat==='all'?'active':''}" onclick="filterStat='all';rClients()">Tous</button>
+      <button class="pill ${filterStat==='actif'?'active':''}" onclick="filterStat='actif';rClients()">Actifs (${nAct})</button>
+      <button class="pill ${filterStat==='inactif'?'active':''}" onclick="filterStat='inactif';rClients()">Inactifs (${nInact})</button>
+      <button class="pill ${filterStat==='fidele'?'active':''}" onclick="filterStat='fidele';rClients()">★ Fidèles (${nFid})</button>
+    </div>
+    <div class="pills">
+      <button class="pill ${filterType==='all'?'active':''}" onclick="filterType='all';rClients()">Tous types</button>
+      ${TYPES.map(t=>`<button class="pill ${filterType===t.v?'active':''}" onclick="filterType='${t.v}';rClients()">${t.p} (${countType(t.v)})</button>`).join('')}
     </div>
     <div class="search-bar"><input placeholder="Rechercher un client..." value="${esc(searchQ)}" oninput="searchQ=this.value;rClients()"></div>
     ${list.length?`<div class="card" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table>
-      <thead><tr><th>Nom</th><th>Téléphone</th><th>Type</th><th>Adresse</th><th></th></tr></thead>
-      <tbody>${list.map(c=>`<tr>
-        <td><strong>${esc(c.name)}</strong></td>
+      <thead><tr><th>Nom</th><th>Téléphone</th><th>Statut</th><th>Type</th><th>Plateaux/sem.</th><th>Ancienneté</th><th></th></tr></thead>
+      <tbody>${list.map(c=>`<tr class="${isActive(c)?'':'row-off'}">
+        <td><strong>${esc(c.name)}</strong> <span class="stars">${loyaltyStars(c)}</span>${c.address?`<br><span style="color:var(--tx2);font-size:.8rem">${esc(c.address)}</span>`:''}</td>
         <td>${esc(c.phone)}</td>
-        <td><span class="badge ${c.type==='grossiste'?'badge-green':'badge-blue'}">${c.type==='grossiste'?'Grossiste':'Client final'}</span></td>
-        <td style="color:var(--tx2)">${esc(c.address||'—')}</td>
-        <td style="white-space:nowrap"><button class="btn-icon" onclick="editClient('${c.id}')" title="Modifier">&#9998;</button><button class="btn-icon" onclick="delClient('${c.id}')" title="Supprimer">&times;</button></td>
+        <td><span class="badge ${isActive(c)?'badge-green':'badge-gray'}">${isActive(c)?'Actif':'Inactif'}</span>${!isActive(c)&&c.inactiveReason?`<br><span style="color:var(--tx2);font-size:.78rem">${esc(c.inactiveReason)}</span>`:''}</td>
+        <td>${typeBadge(c)}</td>
+        <td><strong>${c.weeklyTrays||0}</strong></td>
+        <td style="color:var(--tx2);white-space:nowrap">${ageLabel(clientAge(c))}${!isActive(c)&&c.statusSince?`<br><span style="font-size:.78rem">parti le ${fmtD(c.statusSince)}</span>`:''}</td>
+        <td style="white-space:nowrap"><button class="btn-icon ${isActive(c)?'':'ok'}" onclick="toggleStatus('${c.id}')" title="${isActive(c)?'Marquer inactif':'Réactiver'}">${isActive(c)?'&#9210;':'&#10004;'}</button><button class="btn-icon" onclick="editClient('${c.id}')" title="Modifier">&#9998;</button><button class="btn-icon" onclick="delClient('${c.id}')" title="Supprimer">&times;</button></td>
       </tr>`).join('')}</tbody>
     </table></div></div>`:'<div class="empty"><p>Aucun client enregistré</p></div>'}`;
 }
@@ -410,7 +452,15 @@ function addClient(){
   openModal('Nouveau client',`
     <div class="form-g"><label>Nom complet *</label><input id="m-name"></div>
     <div class="form-g"><label>Téléphone *</label><input id="m-phone" type="tel"></div>
-    <div class="form-g"><label>Type de client</label><select id="m-type"><option value="final">Client final</option><option value="grossiste">Grossiste</option></select></div>
+    <div class="form-row">
+      <div class="form-g"><label>Type de client</label><select id="m-type">${typeOpts('final')}</select></div>
+      <div class="form-g"><label>Statut</label><select id="m-status"><option value="actif">Actif</option><option value="inactif">Inactif</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-g"><label>Plateaux par semaine</label><input id="m-week" type="number" min="0" step="1" value="0"></div>
+      <div class="form-g"><label>Client depuis</label><input id="m-since" type="date" value="${today()}"></div>
+    </div>
+    <div class="form-hint">Plateaux/semaine : quantité habituelle, sert à estimer la demande et la couverture du stock. Client depuis : sert à calculer l'ancienneté et la fidélité.</div>
     <div class="form-g"><label>Adresse</label><input id="m-addr"></div>
     <div class="form-g"><label>Notes</label><textarea id="m-notes" rows="2"></textarea></div>
     <div class="modal-ft"><button class="btn btn-s" onclick="closeModal()">Annuler</button><button class="btn btn-p" onclick="saveClient()">Enregistrer</button></div>`);
@@ -418,7 +468,10 @@ function addClient(){
 function saveClient(){
   const n=document.getElementById('m-name').value.trim(),p=document.getElementById('m-phone').value.trim();
   if(!n||!p){toast('Nom et téléphone requis','err');return}
-  S.clients.push({id:gid(),name:n,phone:p,type:document.getElementById('m-type').value,address:document.getElementById('m-addr').value.trim(),notes:document.getElementById('m-notes').value.trim(),createdAt:new Date().toISOString()});
+  const w=parseInt(document.getElementById('m-week').value);
+  if(document.getElementById('m-week').value!==''&&(isNaN(w)||w<0)){toast('Nombre de plateaux invalide','err');return}
+  const st=document.getElementById('m-status').value;
+  S.clients.push({id:gid(),name:n,phone:p,type:document.getElementById('m-type').value,status:st,statusSince:today(),since:document.getElementById('m-since').value||today(),inactiveReason:'',weeklyTrays:isNaN(w)?0:w,address:document.getElementById('m-addr').value.trim(),notes:document.getElementById('m-notes').value.trim(),createdAt:new Date().toISOString()});
   save();closeModal();rClients();toast('Client ajouté');
 }
 function editClient(id){
@@ -426,7 +479,15 @@ function editClient(id){
   openModal('Modifier le client',`
     <div class="form-g"><label>Nom complet *</label><input id="m-name" value="${esc(c.name)}"></div>
     <div class="form-g"><label>Téléphone *</label><input id="m-phone" type="tel" value="${esc(c.phone)}"></div>
-    <div class="form-g"><label>Type de client</label><select id="m-type"><option value="final" ${c.type==='final'?'selected':''}>Client final</option><option value="grossiste" ${c.type==='grossiste'?'selected':''}>Grossiste</option></select></div>
+    <div class="form-row">
+      <div class="form-g"><label>Type de client</label><select id="m-type">${typeOpts(clientType(c).v)}</select></div>
+      <div class="form-g"><label>Statut</label><select id="m-status"><option value="actif" ${isActive(c)?'selected':''}>Actif</option><option value="inactif" ${isActive(c)?'':'selected'}>Inactif</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-g"><label>Plateaux par semaine</label><input id="m-week" type="number" min="0" step="1" value="${c.weeklyTrays||0}"></div>
+      <div class="form-g"><label>Client depuis</label><input id="m-since" type="date" value="${esc(c.since||(c.createdAt||'').substring(0,10))}"></div>
+    </div>
+    <div class="form-hint">Ancienneté actuelle : <strong>${ageLabel(clientAge(c))}</strong>${isLoyal(c)?' — client fidèle &#9733;':''}${!isActive(c)&&c.inactiveReason?` &middot; Inactif : ${esc(c.inactiveReason)}`:''}</div>
     <div class="form-g"><label>Adresse</label><input id="m-addr" value="${esc(c.address||'')}"></div>
     <div class="form-g"><label>Notes</label><textarea id="m-notes" rows="2">${esc(c.notes||'')}</textarea></div>
     <div class="modal-ft"><button class="btn btn-s" onclick="closeModal()">Annuler</button><button class="btn btn-p" onclick="updClient('${id}')">Enregistrer</button></div>`);
@@ -435,8 +496,38 @@ function updClient(id){
   const c=S.clients.find(x=>x.id===id);if(!c)return;
   const n=document.getElementById('m-name').value.trim(),p=document.getElementById('m-phone').value.trim();
   if(!n||!p){toast('Nom et téléphone requis','err');return}
-  c.name=n;c.phone=p;c.type=document.getElementById('m-type').value;c.address=document.getElementById('m-addr').value.trim();c.notes=document.getElementById('m-notes').value.trim();
+  const w=parseInt(document.getElementById('m-week').value);
+  if(document.getElementById('m-week').value!==''&&(isNaN(w)||w<0)){toast('Nombre de plateaux invalide','err');return}
+  const st=document.getElementById('m-status').value;
+  if(st!==(c.status||'actif')){c.statusSince=today();if(st==='actif')c.inactiveReason=''}
+  c.status=st;c.since=document.getElementById('m-since').value||c.since;
+  c.name=n;c.phone=p;c.type=document.getElementById('m-type').value;c.weeklyTrays=isNaN(w)?0:w;c.address=document.getElementById('m-addr').value.trim();c.notes=document.getElementById('m-notes').value.trim();
   save();closeModal();rClients();toast('Client modifié');
+}
+function toggleStatus(id){const c=S.clients.find(x=>x.id===id);if(!c)return;isActive(c)?askInactive(id):reactivate(id)}
+function askInactive(id){
+  const c=S.clients.find(x=>x.id===id);if(!c)return;
+  openModal('Marquer comme inactif',`
+    <p style="margin-bottom:14px"><strong>${esc(c.name)}</strong> n'achète plus pour le moment. Il reste dans la liste mais sort de la demande hebdomadaire et perd son ancienneté de fidélité.</p>
+    <div class="form-row">
+      <div class="form-g"><label>Inactif depuis</label><input id="m-sdate" type="date" value="${today()}"></div>
+      <div class="form-g"><label>Raison</label><select id="m-reason"><option>Hausse des prix</option><option>Parti chez un concurrent</option><option>Arr&ecirc;t d'activit&eacute;</option><option>D&eacute;m&eacute;nagement</option><option>Impay&eacute;</option><option>Autre</option></select></div>
+    </div>
+    <div class="form-g"><label>Précision</label><input id="m-rnote" placeholder="Optionnel"></div>
+    <div class="modal-ft"><button class="btn btn-s" onclick="closeModal()">Annuler</button><button class="btn btn-p" onclick="saveInactive('${id}')">Confirmer</button></div>`);
+}
+function saveInactive(id){
+  const c=S.clients.find(x=>x.id===id);if(!c)return;
+  const r=document.getElementById('m-reason').value,nt=document.getElementById('m-rnote').value.trim();
+  c.status='inactif';c.statusSince=document.getElementById('m-sdate').value||today();c.inactiveReason=nt?r+' — '+nt:r;
+  save();closeModal();rClients();toast(c.name+' marqué inactif');
+}
+async function reactivate(id){
+  const c=S.clients.find(x=>x.id===id);if(!c)return;
+  if(await showConfirm('Réactiver '+c.name+' ? Son ancienneté de fidélité repart à zéro.')){
+    c.status='actif';c.statusSince=today();c.since=today();c.inactiveReason='';
+    save();rClients();toast(c.name+' réactivé');
+  }
 }
 async function delClient(id){if(await showConfirm('Supprimer ce client ?')){S.clients=S.clients.filter(x=>x.id!==id);save();rClients();toast('Client supprimé')}}
 
@@ -464,7 +555,7 @@ function rDebts(){
       const rem=debtRemaining(d),st=debtStatus(d),pays=d.payments||[];
       return`<div class="card">
         <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px">
-          <div><strong style="font-size:1.05rem">${esc(clientName(d.clientId))}</strong><br><span style="color:var(--tx2);font-size:.85rem">${esc(d.description||'')} — ${fmtD(d.date)}</span></div>
+          <div><strong style="font-size:1.05rem">${esc(clientName(d.clientId))}</strong>${(()=>{const c=S.clients.find(x=>x.id===d.clientId);return c&&!isActive(c)?' <span class="badge badge-gray">Inactif</span>':''})()}<br><span style="color:var(--tx2);font-size:.85rem">${esc(d.description||'')} — ${fmtD(d.date)}</span></div>
           <div style="text-align:right">
             <span class="badge ${st==='en_cours'?'badge-red':'badge-green'}">${st==='en_cours'?'En cours':'Soldée'}</span><br>
             <span style="font-family:Outfit;font-weight:700;font-size:1.1rem">${cfa(rem>0?rem:0)}</span>
@@ -480,20 +571,42 @@ function rDebts(){
     }).join(''):'<div class="empty"><p>Aucune dette enregistrée</p></div>'}`;
 }
 
+function clientMatches(q){
+  q=(q||'').trim().toLowerCase();
+  return activeClients().filter(c=>!q||c.name.toLowerCase().includes(q)||c.phone.replace(/\s/g,'').includes(q.replace(/\s/g,'')))
+    .sort((a,b)=>a.name.localeCompare(b.name,'fr'));
+}
+function clientOpts(q){return clientMatches(q).map(c=>`<option value="${c.id}">${esc(c.name)} — ${clientType(c).s}${c.phone?' — '+esc(c.phone):''}</option>`).join('')}
+function filterClientSel(){
+  const q=document.getElementById('m-csearch').value;
+  const sel=document.getElementById('m-client'),prev=sel.value;
+  sel.innerHTML=clientOpts(q);
+  if(prev&&[...sel.options].some(o=>o.value===prev))sel.value=prev;
+  const n=sel.options.length,info=document.getElementById('m-cinfo');
+  const hidden=q.trim()?S.clients.filter(c=>!isActive(c)&&c.name.toLowerCase().includes(q.trim().toLowerCase())).length:0;
+  info.textContent=n?`${n} client${n>1?'s':''} actif${n>1?'s':''}`+(hidden?` · ${hidden} inactif${hidden>1?'s':''} masqué${hidden>1?'s':''}`:'')
+    :(hidden?`Aucun client actif — ${hidden} client${hidden>1?'s':''} inactif${hidden>1?'s':''} correspond${hidden>1?'ent':''} : réactivez-le depuis la page Clients.`:'Aucun client ne correspond à cette recherche.');
+}
 function addDebt(){
-  if(!S.clients.length){toast('Ajoutez d\'abord un client','err');return}
-  const opts=S.clients.map(c=>`<option value="${c.id}">${esc(c.name)} (${c.type==='grossiste'?'Grossiste':'Final'})</option>`).join('');
+  const act=activeClients().length;
+  if(!act){toast(S.clients.length?'Aucun client actif — réactivez un client d\'abord':'Ajoutez d\'abord un client','err');return}
   openModal('Nouvelle dette',`
-    <div class="form-g"><label>Client *</label><select id="m-client">${opts}</select></div>
+    <div class="form-g"><label>Client *</label>
+      <input id="m-csearch" placeholder="Rechercher par nom ou téléphone..." oninput="filterClientSel()" autocomplete="off">
+      <select id="m-client" style="margin-top:6px">${clientOpts('')}</select>
+      <div class="form-hint" id="m-cinfo">${act} client${act>1?'s':''} actif${act>1?'s':''} · les inactifs ne sont pas proposés</div>
+    </div>
     <div class="form-g"><label>Montant (FCFA) *</label><input id="m-amount" type="number" min="0"></div>
     <div class="form-g"><label>Description</label><input id="m-desc" placeholder="Ex: Achat 20 plateaux"></div>
     <div class="form-g"><label>Date</label><input id="m-date" type="date" value="${today()}"></div>
     <div class="modal-ft"><button class="btn btn-s" onclick="closeModal()">Annuler</button><button class="btn btn-p" onclick="saveDebt()">Enregistrer</button></div>`);
 }
 function saveDebt(){
+  const cid=document.getElementById('m-client').value;
+  if(!cid){toast('Sélectionnez un client','err');return}
   const amt=parseFloat(document.getElementById('m-amount').value);
   if(!amt||amt<=0){toast('Montant invalide','err');return}
-  S.debts.push({id:gid(),clientId:document.getElementById('m-client').value,amount:amt,description:document.getElementById('m-desc').value.trim(),date:document.getElementById('m-date').value||today(),payments:[]});
+  S.debts.push({id:gid(),clientId:cid,amount:amt,description:document.getElementById('m-desc').value.trim(),date:document.getElementById('m-date').value||today(),payments:[]});
   save();closeModal();rDebts();toast('Dette ajoutée');
 }
 function addPayment(debtId){
@@ -590,6 +703,12 @@ function rStock(){
   const closing=entry?entry.closingStock:null;
   const sold=(opening!=null&&closing!=null)?opening+received-closing:null;
   const needsInit=opening===null&&S.initialStock===null;
+  const curStock=closing!=null?closing:(opening??0)+received;
+  const wDem=weeklyDemand(),dDem=dailyDemand();
+  const cover=dDem>0?curStock/dDem:null;
+  const engaged=activeClients().filter(c=>(c.weeklyTrays||0)>0).sort((a,b)=>(b.weeklyTrays||0)-(a.weeklyTrays||0));
+  const dorm=dormantDemand();
+  const lastRec=lastReception();
 
   const moDaily=S.daily.filter(d=>d.date.startsWith(mo)).sort((a,b)=>b.date.localeCompare(a.date));
   const moRec=S.receptions.filter(r=>r.date.startsWith(mo)).sort((a,b)=>b.date.localeCompare(a.date));
@@ -618,11 +737,25 @@ function rStock(){
   pg.innerHTML=`
     <div class="pg-hd"><h1>Stock</h1></div>
     ${todayHtml}
+    ${wDem>0?`<div class="card"><h3>Besoins clients</h3>
+      <div class="stats" style="margin-bottom:14px">
+        <div class="st gold"><div class="st-v">${wDem}</div><div class="st-l">Plateaux / semaine engagés</div></div>
+        <div class="st blue"><div class="st-v">${dDem.toFixed(1)}</div><div class="st-l">Besoin moyen / jour</div></div>
+        <div class="st ${cover==null?'blue':cover<3?'red':cover<7?'gold':'green'}"><div class="st-v">${cover==null?'—':cover.toFixed(1)+' j'}</div><div class="st-l">Couverture du stock (${curStock} plateaux)</div></div>
+      </div>
+      ${cover!=null&&cover<7?`<div class="form-hint" style="color:var(--red)">Stock insuffisant pour couvrir une semaine : il manque ${Math.max(0,Math.ceil(wDem-curStock))} plateaux.</div>`:''}
+      ${dorm>0?`<div class="form-hint">Hors calcul : ${dorm} plateaux/semaine chez des clients inactifs — volume récupérable s'ils reviennent.</div>`:''}
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Client</th><th>Type</th><th>Plateaux/sem.</th><th>Part</th></tr></thead>
+        <tbody>${engaged.map(c=>`<tr><td><strong>${esc(c.name)}</strong> <span class="stars">${loyaltyStars(c)}</span></td><td>${typeBadge(c)}</td><td>${c.weeklyTrays}</td><td style="color:var(--tx2)">${(c.weeklyTrays/wDem*100).toFixed(0)} %</td></tr>`).join('')}</tbody>
+      </table></div>
+    </div>`:''}
     <div class="mo-nav"><button class="btn btn-g" onclick="chgMonth(-1)">&larr;</button><span>${moLabel(mo)}</span><button class="btn btn-g" onclick="chgMonth(1)">&rarr;</button></div>
     <div class="stats">
       <div class="st gold"><div class="st-v">${totalRec}</div><div class="st-l">Plateaux reçus</div></div>
       <div class="st green"><div class="st-v">${totalSold}</div><div class="st-l">Plateaux vendus</div></div>
       <div class="st blue"><div class="st-v">${cfa(getLatestCost())}</div><div class="st-l">Dernier prix de revient</div></div>
+      <div class="st ${lastRec==null?'blue':daysAgo(lastRec.date)>=7?'red':'green'}"><div class="st-v">${lastRec?agoLabel(lastRec.date):'—'}</div><div class="st-l">${lastRec?`Dernière réception : ${lastRec.quantity} plateaux le ${fmtD(lastRec.date)}`:'Aucune réception enregistrée'}</div></div>
     </div>
     <div class="card"><h3>Réceptions</h3>
       ${moRec.length?`<div class="tbl-wrap"><table>
@@ -635,23 +768,31 @@ function rStock(){
         <thead><tr><th>Date</th><th>Ouverture</th><th>Reçu</th><th>Clôture</th><th>Vendus</th></tr></thead>
         <tbody>${moDaily.map(d=>{const op=getOpening(d.date);const rc=getReceived(d.date);const sl=(op!=null&&d.closingStock!=null)?op+rc-d.closingStock:'—';return`<tr><td>${fmtD(d.date)}</td><td>${op??'—'}</td><td>${rc}</td><td>${d.closingStock??'—'}</td><td><strong>${sl}</strong></td></tr>`}).join('')}</tbody>
       </table></div>`:'<p class="empty" style="padding:12px">Aucune entrée ce mois</p>'}
+      ${S.initialStock!=null?`<div class="form-hint" style="margin-top:10px">Stock initial : <strong>${S.initialStock} plateaux</strong>${S.initialStockDate?` reçus le ${fmtD(S.initialStockDate)}`:' — <span style="color:var(--red)">date de réception non renseignée</span>'} <button class="btn-icon" onclick="setInitStock()" title="Corriger le stock initial">&#9998;</button></div>`:''}
     </div>`;
 }
 
 function setInitStock(){
-  openModal('Stock initial',`
-    <div class="form-g"><label>Nombre de plateaux en stock *</label><input id="m-qty" type="number" min="0"></div>
-    <div class="form-hint">Ce sera votre stock d'ouverture pour aujourd'hui.</div>
+  const has=S.initialStock!=null;
+  openModal(has?'Corriger le stock initial':'Stock initial',`
+    <div class="form-row">
+      <div class="form-g"><label>Nombre de plateaux reçus *</label><input id="m-qty" type="number" min="0" value="${has?S.initialStock:''}"></div>
+      <div class="form-g"><label>Date de réception *</label><input id="m-date" type="date" max="${today()}" value="${S.initialStockDate||today()}"></div>
+    </div>
+    <div class="form-hint">Ce stock devient votre ouverture à partir de cette date. Les jours antérieurs restent vides.</div>
     <div class="modal-ft"><button class="btn btn-s" onclick="closeModal()">Annuler</button><button class="btn btn-p" onclick="saveInitStock()">Enregistrer</button></div>`);
 }
 function saveInitStock(){
-  const q=parseInt(document.getElementById('m-qty').value);
+  const q=parseInt(document.getElementById('m-qty').value),d=document.getElementById('m-date').value||today();
   if(isNaN(q)||q<0){toast('Quantité invalide','err');return}
-  S.initialStock=q;save();closeModal();rStock();toast('Stock initial défini');
+  if(d>today()){toast('La date de réception ne peut pas être dans le futur','err');return}
+  S.initialStock=q;S.initialStockDate=d;save();closeModal();rStock();toast('Stock initial enregistré');
 }
 function addReception(){
+  const lr=lastReception();
   openModal('Nouvelle réception',`
-    <div class="form-g"><label>Date</label><input id="m-date" type="date" value="${today()}"></div>
+    ${lr?`<div class="form-hint" style="margin-bottom:12px">Dernière réception : <strong>${lr.quantity} plateaux</strong> le ${fmtD(lr.date)} (${agoLabel(lr.date)}).</div>`:''}
+    <div class="form-g"><label>Date de réception *</label><input id="m-date" type="date" value="${today()}"></div>
     <div class="form-row">
       <div class="form-g"><label>Quantité (plateaux) *</label><input id="m-qty" type="number" min="1"></div>
       <div class="form-g"><label>Prix de revient/plateau (FCFA) *</label><input id="m-cost" type="number" min="0" value="${getLatestCost()||''}"></div>
@@ -805,7 +946,7 @@ function expJSON(){
 }
 function expCSV(type){
   if(type==='clients'){
-    doSave('clients.csv',csvStr(['Nom','Téléphone','Type','Adresse','Notes'],S.clients.map(c=>[c.name,c.phone,c.type==='grossiste'?'Grossiste':'Client final',c.address||'',c.notes||''])));
+    doSave('clients.csv',csvStr(['Nom','Téléphone','Statut','Client depuis','Ancienneté (mois)','Fidèle','Raison inactivité','Type','Plateaux/semaine','Adresse','Notes'],S.clients.map(c=>[c.name,c.phone,isActive(c)?'Actif':'Inactif',c.since||(c.createdAt||'').substring(0,10),clientAge(c),isLoyal(c)?'Oui':'Non',c.inactiveReason||'',typeLabel(c),c.weeklyTrays||0,c.address||'',c.notes||''])));
   }else if(type==='expenses'){
     doSave('depenses.csv',csvStr(['Date','Description','Catégorie','Montant'],S.expenses.map(e=>[e.date,e.description,e.category,e.amount])));
   }else if(type==='sales'){
