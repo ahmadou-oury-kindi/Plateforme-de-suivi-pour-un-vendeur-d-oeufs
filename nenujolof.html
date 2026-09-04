@@ -1,0 +1,847 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nenu Jolof</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+:root{
+  --gold:#C78D1E;--gold-h:#AD7A15;--gold-bg:rgba(199,141,30,.08);
+  --green:#3A7D44;--green-bg:rgba(58,125,68,.1);
+  --red:#C0392B;--red-bg:rgba(192,57,43,.08);
+  --blue:#2C6FAC;--blue-bg:rgba(44,111,172,.08);
+  --bg:#FAF6EF;--bg2:#fff;--bgS:#2D2319;--bgI:#F2ECE2;
+  --bgH:rgba(199,141,30,.04);--bgM:rgba(45,35,25,.45);
+  --tx:#2D2319;--tx2:#8B7D6B;--txS:#C8BFB2;--txSA:#fff;
+  --bd:#E5DDD2;--sh:0 1px 3px rgba(45,35,25,.06);
+  --shL:0 8px 24px rgba(45,35,25,.1);
+  --r:10px;--rS:6px;--rL:14px;--sw:230px;
+}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --gold:#D9A740;--gold-h:#C89530;--gold-bg:rgba(217,167,64,.12);
+  --green-bg:rgba(58,125,68,.15);--red-bg:rgba(192,57,43,.12);--blue-bg:rgba(44,111,172,.12);
+  --bg:#161210;--bg2:#221D18;--bgS:#0E0C0A;--bgI:#2D2720;
+  --bgH:rgba(217,167,64,.06);--bgM:rgba(0,0,0,.6);
+  --tx:#E8E0D6;--tx2:#9B8E7E;--bd:#3A322A;
+  --sh:0 1px 3px rgba(0,0,0,.2);--shL:0 8px 24px rgba(0,0,0,.3);
+}}
+:root[data-theme="dark"]{
+  --gold:#D9A740;--gold-h:#C89530;--gold-bg:rgba(217,167,64,.12);
+  --green-bg:rgba(58,125,68,.15);--red-bg:rgba(192,57,43,.12);--blue-bg:rgba(44,111,172,.12);
+  --bg:#161210;--bg2:#221D18;--bgS:#0E0C0A;--bgI:#2D2720;
+  --bgH:rgba(217,167,64,.06);--bgM:rgba(0,0,0,.6);
+  --tx:#E8E0D6;--tx2:#9B8E7E;--bd:#3A322A;
+  --sh:0 1px 3px rgba(0,0,0,.2);--shL:0 8px 24px rgba(0,0,0,.3);
+}
+
+[hidden]{display:none!important}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Source Sans 3',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--tx);line-height:1.55}
+h1,h2,h3,h4{font-family:'Outfit',sans-serif;font-weight:600;text-wrap:balance}
+h1{font-size:1.5rem}h2{font-size:1.25rem}h3{font-size:1.1rem}
+a{color:var(--gold);text-decoration:none}
+input,select,textarea,button{font-family:inherit;font-size:inherit}
+
+/* LOGIN */
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:var(--bg);position:relative;z-index:300}
+.login-card{width:100%;max-width:360px;background:var(--bg2);border-radius:var(--rL);padding:40px 28px;box-shadow:var(--shL);text-align:center}
+.login-logo{width:56px;height:56px;margin:0 auto 16px}
+.login-card h1{margin-bottom:4px;color:var(--tx)}
+.login-card p{color:var(--tx2);margin-bottom:24px;font-size:.95rem}
+.login-card .form-g{text-align:left;margin-bottom:14px}
+.login-card label{display:block;font-size:.85rem;font-weight:600;color:var(--tx2);margin-bottom:4px}
+.login-card input{width:100%;padding:10px 12px;border:1.5px solid var(--bd);border-radius:var(--rS);background:var(--bgI);color:var(--tx);outline:none;transition:border-color .2s}
+.login-card input:focus{border-color:var(--gold)}
+.login-err{color:var(--red);font-size:.85rem;margin-bottom:10px;min-height:1.2em}
+.login-card .btn-login{width:100%;padding:12px;border:none;border-radius:var(--rS);background:var(--gold);color:#fff;font-weight:600;font-size:1rem;cursor:pointer;margin-top:6px;font-family:'Outfit',sans-serif;transition:background .2s}
+.login-card .btn-login:hover{background:var(--gold-h)}
+
+/* LAYOUT */
+.app{display:flex;min-height:100vh}
+.side{width:var(--sw);background:var(--bgS);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform .3s}
+.side-brand{padding:20px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.08)}
+.side-brand svg{width:36px;height:36px;flex-shrink:0}
+.side-brand span{font-family:'Outfit',sans-serif;font-weight:700;font-size:1.1rem;color:#fff}
+.nav-list{list-style:none;padding:12px 8px;flex:1}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--rS);color:var(--txS);cursor:pointer;font-size:.92rem;font-weight:500;transition:all .15s;margin-bottom:2px}
+.nav-item:hover{background:rgba(255,255,255,.06);color:var(--txSA)}
+.nav-item.active{background:rgba(199,141,30,.15);color:var(--gold);font-weight:600}
+.nav-item svg{width:20px;height:20px;flex-shrink:0}
+.nav-out{display:flex;align-items:center;gap:10px;padding:14px 20px;border-top:1px solid rgba(255,255,255,.08);color:var(--txS);cursor:pointer;font-size:.9rem;background:none;border-left:none;border-right:none;border-bottom:none;width:100%;text-align:left;transition:color .15s}
+.nav-out:hover{color:var(--red)}
+.nav-out svg{width:18px;height:18px}
+.main{flex:1;min-width:0;margin-left:var(--sw);padding:28px 32px 40px}
+.hamburger{display:none;position:fixed;top:12px;left:12px;z-index:200;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rS);width:40px;height:40px;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--sh);font-size:1.2rem;color:var(--tx)}
+.side-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:90}
+
+/* PAGE HEADER */
+.pg-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--rS);font-weight:600;font-size:.88rem;cursor:pointer;border:none;transition:all .15s;font-family:'Outfit',sans-serif}
+.btn-p{background:var(--gold);color:#fff}.btn-p:hover{background:var(--gold-h)}
+.btn-s{background:transparent;color:var(--gold);border:1.5px solid var(--gold)}.btn-s:hover{background:var(--gold-bg)}
+.btn-d{background:var(--red);color:#fff}.btn-d:hover{opacity:.9}
+.btn-g{background:transparent;color:var(--tx2);border:none;padding:8px}.btn-g:hover{color:var(--tx)}
+.btn-icon{background:none;border:none;color:var(--tx2);cursor:pointer;padding:4px 6px;border-radius:4px;font-size:1.1rem;line-height:1;transition:color .15s}.btn-icon:hover{color:var(--red)}
+.btn-sm{padding:6px 10px;font-size:.82rem}
+
+/* STAT CARDS */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px}
+.st{background:var(--bg2);border-radius:var(--r);padding:16px 18px;box-shadow:var(--sh);border-left:3px solid var(--bd)}
+.st.gold{border-left-color:var(--gold)}.st.green{border-left-color:var(--green)}.st.red{border-left-color:var(--red)}.st.blue{border-left-color:var(--blue)}
+.st-v{font-family:'Outfit',sans-serif;font-size:1.4rem;font-weight:700;color:var(--tx);font-variant-numeric:tabular-nums}
+.st-l{font-size:.82rem;color:var(--tx2);margin-top:2px}
+
+/* CARDS */
+.card{background:var(--bg2);border-radius:var(--r);padding:20px;box-shadow:var(--sh);margin-bottom:16px}
+.card h3{margin-bottom:14px}
+
+/* FORMS */
+.form-g{margin-bottom:14px}
+.form-g label{display:block;font-size:.85rem;font-weight:600;color:var(--tx2);margin-bottom:4px}
+.form-g input,.form-g select,.form-g textarea{width:100%;padding:9px 12px;border:1.5px solid var(--bd);border-radius:var(--rS);background:var(--bgI);color:var(--tx);outline:none;transition:border-color .2s}
+.form-g input:focus,.form-g select:focus,.form-g textarea:focus{border-color:var(--gold)}
+.form-g textarea{resize:vertical}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-hint{font-size:.78rem;color:var(--tx2);margin-top:2px}
+
+/* TABLES */
+.tbl-wrap{overflow-x:auto;margin:0 -4px}
+table{width:100%;border-collapse:collapse;font-size:.9rem;font-variant-numeric:tabular-nums}
+thead{border-bottom:2px solid var(--bd)}
+th{text-align:left;padding:10px 12px;font-weight:600;color:var(--tx2);font-size:.82rem;text-transform:uppercase;letter-spacing:.03em}
+td{padding:10px 12px;border-bottom:1px solid var(--bd)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bgH)}
+
+/* BADGES */
+.badge{display:inline-block;padding:2px 10px;border-radius:var(--rS);font-size:.78rem;font-weight:600}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-red{background:var(--red-bg);color:var(--red)}
+.badge-blue{background:var(--blue-bg);color:var(--blue)}
+.badge-gold{background:var(--gold-bg);color:var(--gold)}
+
+/* MODAL */
+.modal-ov{position:fixed;inset:0;background:var(--bgM);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--bg2);border-radius:var(--rL);width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:var(--shL)}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--bd)}
+.modal-hd h3{font-size:1.1rem}
+.modal-x{background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--tx2);padding:0 4px;line-height:1}.modal-x:hover{color:var(--tx)}
+.modal-bd{padding:20px}
+.modal-ft{display:flex;gap:10px;justify-content:flex-end;padding:0 20px 20px}
+
+/* TOAST */
+.toast-box{position:fixed;top:16px;right:16px;z-index:600;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{padding:12px 18px;border-radius:var(--rS);font-size:.9rem;font-weight:500;box-shadow:var(--shL);pointer-events:auto;animation:toastIn .3s ease}
+.toast-ok{background:#2E7D3E;color:#fff}.toast-err{background:var(--red);color:#fff}.toast-info{background:var(--blue);color:#fff}
+@keyframes toastIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+
+/* MONTH NAV */
+.mo-nav{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:18px}
+.mo-nav span{font-family:'Outfit',sans-serif;font-weight:600;font-size:1rem;min-width:160px;text-align:center;text-transform:capitalize}
+
+/* SEARCH */
+.search-bar{margin-bottom:16px}
+.search-bar input{width:100%;max-width:360px;padding:9px 14px;border:1.5px solid var(--bd);border-radius:var(--rS);background:var(--bgI);color:var(--tx);outline:none}
+.search-bar input:focus{border-color:var(--gold)}
+
+/* FILTER PILLS */
+.pills{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.pill{padding:5px 14px;border-radius:var(--rS);font-size:.84rem;font-weight:600;cursor:pointer;background:var(--bgI);color:var(--tx2);border:none;transition:all .15s}
+.pill.active{background:var(--gold);color:#fff}
+
+/* CHART */
+.chart-wrap{height:150px;display:flex;align-items:flex-end;gap:6px;padding:24px 0 0}
+.chart-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.chart-bar{width:100%;max-width:36px;background:var(--gold);border-radius:4px 4px 0 0;min-height:2px;transition:height .4s}
+.chart-v{font-size:.75rem;font-weight:600;color:var(--tx)}
+.chart-l{font-size:.72rem;color:var(--tx2)}
+
+/* EMPTY */
+.empty{text-align:center;padding:32px 16px;color:var(--tx2);font-size:.95rem}
+.empty svg{width:48px;height:48px;margin-bottom:12px;opacity:.4}
+
+/* TODAY CARD */
+.today{background:var(--bg2);border-radius:var(--r);padding:20px;box-shadow:var(--sh);margin-bottom:18px;border:1.5px solid var(--gold-bg)}
+.today h3{margin-bottom:14px}
+.today-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.today-item{text-align:center;padding:10px 6px;background:var(--bgI);border-radius:var(--rS)}
+.today-item .tl{font-size:.78rem;color:var(--tx2);display:block}
+.today-item .tv{font-family:'Outfit',sans-serif;font-size:1.3rem;font-weight:700;display:block;margin-top:2px;font-variant-numeric:tabular-nums}
+.today-item.hl{background:var(--gold-bg)}.today-item.hl .tv{color:var(--gold)}
+.today-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+/* DEBT PAYMENTS */
+.pay-list{margin-top:10px;padding-left:12px;border-left:2px solid var(--bd)}
+.pay-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:.88rem}
+.pay-row .pay-amt{font-weight:600}
+.pay-row .pay-date{color:var(--tx2);font-size:.82rem}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .hamburger{display:flex}
+  .side{transform:translateX(-100%)}
+  .side.open{transform:translateX(0)}
+  .side-overlay.open{display:block}
+  .main{margin-left:0;padding:60px 16px 24px}
+  .today-grid{grid-template-columns:repeat(2,1fr)}
+  .form-row{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr 1fr}
+  .pg-hd{flex-direction:column;align-items:flex-start}
+}
+@media(max-width:420px){
+  .stats{grid-template-columns:1fr}
+}
+</style>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="login-wrap">
+  <div class="login-card">
+    <svg class="login-logo" viewBox="0 0 56 56" fill="none"><ellipse cx="28" cy="30" rx="20" ry="24" fill="#C78D1E"/><text x="28" y="36" text-anchor="middle" font-family="Outfit,sans-serif" font-weight="700" font-size="18" fill="#fff">NJ</text></svg>
+    <h1>Nenu Jolof</h1>
+    <p>Plateforme de suivi — Oeufs</p>
+    <div class="form-g"><label>Email</label><input type="email" id="logEmail" autocomplete="email"></div>
+    <div class="form-g"><label>Mot de passe</label><input type="password" id="logPass" autocomplete="current-password"></div>
+    <div class="login-err" id="logErr"></div>
+    <button class="btn-login" onclick="doLogin()">Connexion</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="app" hidden>
+  <button class="hamburger" id="hamBtn" onclick="toggleSide()">&#9776;</button>
+  <div class="side-overlay" id="sideOv" onclick="toggleSide()"></div>
+  <nav class="side" id="sidebar">
+    <div class="side-brand">
+      <svg viewBox="0 0 40 40"><ellipse cx="20" cy="22" rx="14" ry="17" fill="#C78D1E"/><text x="20" y="27" text-anchor="middle" font-family="Outfit,sans-serif" font-weight="700" font-size="13" fill="#fff">NJ</text></svg>
+      <span>Nenu Jolof</span>
+    </div>
+    <ul class="nav-list">
+      <li class="nav-item active" data-p="dashboard" onclick="nav('dashboard')"><svg viewBox="0 0 20 20" fill="currentColor"><rect x="1" y="1" width="7.5" height="7.5" rx="1.5"/><rect x="11.5" y="1" width="7.5" height="7.5" rx="1.5"/><rect x="1" y="11.5" width="7.5" height="7.5" rx="1.5"/><rect x="11.5" y="11.5" width="7.5" height="7.5" rx="1.5"/></svg><span>Tableau de bord</span></li>
+      <li class="nav-item" data-p="clients" onclick="nav('clients')"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="6" r="3.5"/><path d="M3 18v-1.5A4.5 4.5 0 017.5 12h5A4.5 4.5 0 0117 16.5V18"/></svg><span>Clients</span></li>
+      <li class="nav-item" data-p="debts" onclick="nav('debts')"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4.5" width="16" height="11" rx="2"/><path d="M2 8.5h16"/><path d="M5.5 13h3"/></svg><span>Dettes</span></li>
+      <li class="nav-item" data-p="expenses" onclick="nav('expenses')"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 2h10a1.5 1.5 0 011.5 1.5v13l-2.5-1.5L11.5 16.5 9 15l-2.5 1.5L4 15l-2.5 1.5V3.5A1.5 1.5 0 013 2h2z"/><path d="M7 6.5h6M7 9.5h4"/></svg><span>Dépenses</span></li>
+      <li class="nav-item" data-p="stock" onclick="nav('stock')"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 7L10 3l7.5 4v6L10 17l-7.5-4V7z"/><path d="M2.5 7L10 11l7.5-4"/><path d="M10 11v6"/></svg><span>Stock</span></li>
+      <li class="nav-item" data-p="margins" onclick="nav('margins')"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 15l5-5.5 3.5 3L17 5.5"/><path d="M13 5h4.5v4"/></svg><span>Marges</span></li>
+      <li class="nav-item" data-p="settings" onclick="nav('settings')"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="3"/><path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M3.9 3.9l1.4 1.4M14.7 14.7l1.4 1.4M3.9 16.1l1.4-1.4M14.7 5.3l1.4-1.4"/></svg><span>Paramètres</span></li>
+    </ul>
+    <button class="nav-out" onclick="doLogout()"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 17H4a1.5 1.5 0 01-1.5-1.5v-11A1.5 1.5 0 014 3h3"/><path d="M13 14l4-4-4-4"/><path d="M17 10H7"/></svg><span>Déconnexion</span></button>
+  </nav>
+  <main class="main" id="main">
+    <div id="pg-dashboard" class="page"></div>
+    <div id="pg-clients" class="page" hidden></div>
+    <div id="pg-debts" class="page" hidden></div>
+    <div id="pg-expenses" class="page" hidden></div>
+    <div id="pg-stock" class="page" hidden></div>
+    <div id="pg-margins" class="page" hidden></div>
+    <div id="pg-settings" class="page" hidden></div>
+  </main>
+</div>
+
+<!-- MODAL -->
+<div id="modalOv" class="modal-ov" hidden onclick="event.target===this&&closeModal()">
+  <div class="modal"><div class="modal-hd"><h3 id="modalT"></h3><button class="modal-x" onclick="closeModal()">&times;</button></div><div class="modal-bd" id="modalB"></div></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-box" id="toastBox"></div>
+
+<script>
+/* ===== CONSTANTS ===== */
+const AUTH_E='nenujolof@gmail.com',AUTH_P='NenuJolof2025',DB='nj_data';
+const CATS=['Transport','Loyer','Salaires','Électricité','Fournitures','Téléphone','Emballage','Divers'];
+
+/* ===== STATE ===== */
+let S,selMonth,curPage='dashboard',DL=null,pendConf=null,searchQ='',filterType='all',filterDebt='all';
+
+function defaults(){return{initialStock:null,clients:[],debts:[],expenses:[],receptions:[],daily:[],sales:[]}}
+function load(){try{const d=localStorage.getItem(DB);return d?JSON.parse(d):defaults()}catch(e){return defaults()}}
+function save(){try{localStorage.setItem(DB,JSON.stringify(S))}catch(e){toast('Erreur de sauvegarde','err')}}
+
+/* ===== UTILS ===== */
+function gid(){return Date.now().toString(36)+Math.random().toString(36).substr(2,6)}
+function cfa(n){if(n==null||isNaN(n))return'0 FCFA';return new Intl.NumberFormat('fr-FR').format(Math.round(n))+' FCFA'}
+function fmtD(d){return new Date(d+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}
+function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function curMo(){return today().substring(0,7)}
+function moLabel(ym){const[y,m]=ym.split('-');return new Date(y,m-1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'})}
+function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+/* ===== AUTH ===== */
+function doLogin(){
+  const e=document.getElementById('logEmail').value.trim();
+  const p=document.getElementById('logPass').value;
+  if(e===AUTH_E&&p===AUTH_P){sessionStorage.setItem('nj_auth','1');showApp()}
+  else document.getElementById('logErr').textContent='Email ou mot de passe incorrect';
+}
+function doLogout(){sessionStorage.removeItem('nj_auth');document.getElementById('app').hidden=true;document.getElementById('loginScreen').hidden=false}
+function showApp(){document.getElementById('loginScreen').hidden=true;document.getElementById('app').hidden=false;nav('dashboard')}
+document.getElementById('logPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+
+/* ===== NAV ===== */
+function nav(p){
+  curPage=p;
+  document.querySelectorAll('.page').forEach(x=>x.hidden=true);
+  document.getElementById('pg-'+p).hidden=false;
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.p===p));
+  render();
+  if(window.innerWidth<=768)closeSide();
+}
+function render(){
+  const fn={dashboard:rDash,clients:rClients,debts:rDebts,expenses:rExpenses,stock:rStock,margins:rMargins,settings:rSettings};
+  if(fn[curPage])fn[curPage]();
+}
+
+/* ===== SIDEBAR ===== */
+function toggleSide(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sideOv').classList.toggle('open')}
+function closeSide(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sideOv').classList.remove('open')}
+
+/* ===== MODAL ===== */
+function openModal(t,html){document.getElementById('modalT').textContent=t;document.getElementById('modalB').innerHTML=html;document.getElementById('modalOv').hidden=false}
+function closeModal(){document.getElementById('modalOv').hidden=true;if(pendConf){pendConf(false);pendConf=null}}
+function showConfirm(msg){
+  return new Promise(res=>{pendConf=res;openModal('Confirmation',`<p style="margin-bottom:20px">${msg}</p><div class="modal-ft" style="padding:0"><button class="btn btn-s" onclick="closeModal()">Annuler</button><button class="btn btn-d" onclick="resConf(true)">Confirmer</button></div>`)});
+}
+function resConf(v){document.getElementById('modalOv').hidden=true;if(pendConf){pendConf(v);pendConf=null}}
+
+/* ===== TOAST ===== */
+function toast(msg,type='ok'){
+  const el=document.createElement('div');el.className='toast toast-'+(type==='err'?'err':type==='info'?'info':'ok');el.textContent=msg;
+  document.getElementById('toastBox').appendChild(el);setTimeout(()=>el.remove(),3000);
+}
+
+/* ===== MONTH NAV ===== */
+function chgMonth(d){
+  const[y,m]=selMonth.split('-').map(Number);const dt=new Date(y,m-1+d,1);
+  selMonth=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');render();
+}
+
+/* ===== STOCK HELPERS ===== */
+function getOpening(date){
+  const prev=S.daily.filter(d=>d.date<date&&d.closingStock!=null).sort((a,b)=>b.date.localeCompare(a.date));
+  if(prev.length)return prev[0].closingStock;
+  return S.initialStock;
+}
+function getReceived(date){return S.receptions.filter(r=>r.date===date).reduce((s,r)=>s+r.quantity,0)}
+function getLatestCost(){
+  const sorted=[...S.receptions].sort((a,b)=>b.date.localeCompare(a.date));
+  return sorted.length?sorted[0].costPrice:0;
+}
+function getCurrentStock(){
+  const sorted=[...S.daily].filter(d=>d.closingStock!=null).sort((a,b)=>b.date.localeCompare(a.date));
+  if(sorted.length)return sorted[0].closingStock;return S.initialStock??0;
+}
+
+/* ===== DEBT HELPERS ===== */
+function debtRemaining(d){return d.amount-(d.payments||[]).reduce((s,p)=>s+p.amount,0)}
+function debtStatus(d){return debtRemaining(d)<=0?'soldee':'en_cours'}
+function clientName(id){const c=S.clients.find(x=>x.id===id);return c?c.name:'Client inconnu'}
+
+/* ================================================================ */
+/*                        PAGE RENDERERS                            */
+/* ================================================================ */
+
+/* ----- DASHBOARD ----- */
+function rDash(){
+  const mo=selMonth,t=today();
+  const moSales=S.sales.filter(s=>s.date.startsWith(mo));
+  const moExp=S.expenses.filter(e=>e.date.startsWith(mo));
+  const totalRev=moSales.reduce((s,x)=>s+x.quantity*x.sellingPrice,0);
+  const totalCost=moSales.reduce((s,x)=>s+x.quantity*x.costPrice,0);
+  const totalMargin=totalRev-totalCost;
+  const totalExp=moExp.reduce((s,x)=>s+x.amount,0);
+  const totalDebt=S.debts.reduce((s,d)=>{const r=debtRemaining(d);return s+(r>0?r:0)},0);
+  const moSold=S.daily.filter(d=>d.date.startsWith(mo)&&d.closingStock!=null).reduce((s,d)=>{const op=getOpening(d.date);const rec=getReceived(d.date);return s+(op!=null?op+rec-d.closingStock:0)},0);
+
+  const days=[];
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');const entry=S.daily.find(e=>e.date===ds);const op=getOpening(ds);const rec=getReceived(ds);let sold=0;if(entry&&entry.closingStock!=null&&op!=null)sold=op+rec-entry.closingStock;days.push({label:d.toLocaleDateString('fr-FR',{weekday:'short'}),sold:Math.max(sold,0)})}
+  const mx=Math.max(...days.map(d=>d.sold),1);
+
+  document.getElementById('pg-dashboard').innerHTML=`
+    <div class="pg-hd"><h1>Tableau de bord</h1><span style="color:var(--tx2);font-size:.9rem">${moLabel(mo)}</span></div>
+    <div class="stats">
+      <div class="st gold"><div class="st-v">${getCurrentStock()}</div><div class="st-l">Stock actuel (plateaux)</div></div>
+      <div class="st green"><div class="st-v">${moSold}</div><div class="st-l">Vendus ce mois</div></div>
+      <div class="st blue"><div class="st-v">${cfa(totalRev)}</div><div class="st-l">Chiffre d'affaires</div></div>
+      <div class="st green"><div class="st-v">${cfa(totalMargin)}</div><div class="st-l">Marge brute</div></div>
+      <div class="st red"><div class="st-v">${cfa(totalDebt)}</div><div class="st-l">Dettes en cours</div></div>
+      <div class="st blue"><div class="st-v">${cfa(totalExp)}</div><div class="st-l">Dépenses du mois</div></div>
+    </div>
+    <div class="card"><h3>Ventes des 7 derniers jours</h3>
+      <div class="chart-wrap">${days.map(d=>`<div class="chart-col"><span class="chart-v">${d.sold}</span><div class="chart-bar" style="height:${(d.sold/mx)*100}%"></div><span class="chart-l">${d.label}</span></div>`).join('')}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="card"><h3>Clients</h3><div style="font-size:2rem;font-weight:700;font-family:Outfit">${S.clients.length}</div><div style="color:var(--tx2);font-size:.85rem">${S.clients.filter(c=>c.type==='grossiste').length} grossistes · ${S.clients.filter(c=>c.type==='final').length} finaux</div></div>
+      <div class="card"><h3>Dettes actives</h3><div style="font-size:2rem;font-weight:700;font-family:Outfit">${S.debts.filter(d=>debtStatus(d)==='en_cours').length}</div><div style="color:var(--tx2);font-size:.85rem">sur ${S.debts.length} total</div></div>
+    </div>`;
+}
+
+/* ----- CLIENTS ----- */
+function rClients(){
+  let list=S.clients;
+  if(searchQ)list=list.filter(c=>c.name.toLowerCase().includes(searchQ.toLowerCase())||c.phone.includes(searchQ));
+  if(filterType!=='all')list=list.filter(c=>c.type===filterType);
+  const pg=document.getElementById('pg-clients');
+  pg.innerHTML=`
+    <div class="pg-hd"><h1>Clients</h1><button class="btn btn-p" onclick="addClient()">+ Nouveau client</button></div>
+    <div class="stats">
+      <div class="st gold"><div class="st-v">${S.clients.length}</div><div class="st-l">Total clients</div></div>
+      <div class="st green"><div class="st-v">${S.clients.filter(c=>c.type==='grossiste').length}</div><div class="st-l">Grossistes</div></div>
+      <div class="st blue"><div class="st-v">${S.clients.filter(c=>c.type==='final').length}</div><div class="st-l">Clients finaux</div></div>
+    </div>
+    <div class="pills">
+      <button class="pill ${filterType==='all'?'active':''}" onclick="filterType='all';rClients()">Tous</button>
+      <button class="pill ${filterType==='grossiste'?'active':''}" onclick="filterType='grossiste';rClients()">Grossistes</button>
+      <button class="pill ${filterType==='final'?'active':''}" onclick="filterType='final';rClients()">Clients finaux</button>
+    </div>
+    <div class="search-bar"><input placeholder="Rechercher un client..." value="${esc(searchQ)}" oninput="searchQ=this.value;rClients()"></div>
+    ${list.length?`<div class="card" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table>
+      <thead><tr><th>Nom</th><th>Téléphone</th><th>Type</th><th>Adresse</th><th></th></tr></thead>
+      <tbody>${list.map(c=>`<tr>
+        <td><strong>${esc(c.name)}</strong></td>
+        <td>${esc(c.phone)}</td>
+        <td><span class="badge ${c.type==='grossiste'?'badge-green':'badge-blue'}">${c.type==='grossiste'?'Grossiste':'Client final'}</span></td>
+        <td style="color:var(--tx2)">${esc(c.address||'—')}</td>
+        <td style="white-space:nowrap"><button class="btn-icon" onclick="editClient('${c.id}')" title="Modifier">&#9998;</button><button class="btn-icon" onclick="delClient('${c.id}')" title="Supprimer">&times;</button></td>
+      </tr>`).join('')}</tbody>
+    </table></div></div>`:'<div class="empty"><p>Aucun client enregistré</p></div>'}`;
+}
+
+function addClient(){
+  openModal('Nouveau client',`
+    <div class="form-g"><label>Nom complet *</label><input id="m-name"></div>
+    <div class="form-g"><label>Téléphone *</label><input id="m-phone" type="tel"></div>
+    <div class="form-g"><label>Type de client</label><select id="m-type"><option value="final">Client final</option><option value="grossiste">Grossiste</option></select></div>
+    <div class="form-g"><label>Adresse</label><input id="m-addr"></div>
+    <div class="form-g"><label>Notes</label><textarea id="m-notes" rows="2"></textarea></div>
+    <div class="modal-ft"><button class="btn btn-s" onclick="closeModal()">Annuler</button><button class="btn btn-p" onclick="saveClient()">Enregistrer</button></div>`);
+}
+function saveClient(){
+  const n=document.getElementById('m-name').value.trim(),p=document.getElementById('m-phone').value.trim();
+  if(!n||!p){toast('Nom et téléphone requis','err');return}
+  S.clients.push({id:gid(),name:n,phone:p,type:document.getElementById('m-type').value,address:document.getElementById('m-addr').value.trim(),notes:document.getElementById('m-notes').value.trim(),createdAt:new Date().toISOString()});
+  save();closeModal();rClients();toast('Client ajouté');
+}
+function editClient(id){
+  const c=S.clients.find(x=>x.id===id);if(!c)return;
+  openModal('Modifier le client',`
+    <div class="form-g"><label>Nom complet *</label><input id="m-name" value="${esc(c.name)}"></div>
+    <div class="form-g"><label>Téléphone *</label><input id="m-phone" type="tel" value="${esc(c.phone)}"></div>
+    <div class="form-g"><label>Type de client</label><select id="m-type"><option value="final" ${c.type==='final'?'selected':''}>Client final</option><option value="grossiste" ${c.type==='grossiste'?'selected':''}>Grossiste</option></select></div>
+    <div class="form-g"><label>Adresse</label><input id="m-addr" value="${esc(c.address||'')}"></div>
+    <div class="form-g"><label>Notes</label><textarea id="m-notes" rows="2">${esc(c.notes||'')}</textarea></div>
+    <div class="modal-ft"><button class="btn btn-s" onclick="closeModal()">Annuler</button><button class="btn btn-p" onclick="updClient('${id}')">Enregistrer</button></div>`);
+}
+function updClient(id){
+  const c=S.clients.find(x=>x.id===id);if(!c)return;
+  const n=document.getElementById('m-name').value.trim(),p=document.getElementById('m-phone').value.trim();
+  if(!n||!p){toast('Nom et téléphone requis','err');return}
+  c.name=n;c.phone=p;c.type=document.getElementById('m-type').value;c.address=document.getElementById('m-addr').value.trim();c.notes=document.getElementById('m-notes').value.trim();
+  save();closeModal();rClients();toast('Client modifié');
+}
+async function delClient(id){if(await showConfirm('Supprimer ce client ?')){S.clients=S.clients.filter(x=>x.id!==id);save();rClients();toast('Client supprimé')}}
+
+/* ----- DEBTS ----- */
+function rDebts(){
+  let list=[...S.debts];
+  if(filterDebt==='en_cours')list=list.filter(d=>debtStatus(d)==='en_cours');
+  else if(filterDebt==='soldee')list=list.filter(d=>debtStatus(d)==='soldee');
+  list.sort((a,b)=>b.date.localeCompare(a.date));
+  const totalEnCours=S.debts.reduce((s,d)=>{const r=debtRemaining(d);return s+(r>0?r:0)},0);
+  const pg=document.getElementById('pg-debts');
+  pg.innerHTML=`
+    <div class="pg-hd"><h1>Dettes</h1><button class="btn btn-p" onclick="addDebt()">+ Nouvelle dette</button></div>
+    <div class="stats">
+      <div class="st red"><div class="st-v">${cfa(totalEnCours)}</div><div class="st-l">Total dettes en cours</div></div>
+      <div class="st gold"><div class="st-v">${S.debts.filter(d=>debtStatus(d)==='en_cours').length}</div><div class="st-l">Dettes actives</div></div>
+      <div class="st green"><div class="st-v">${S.debts.filter(d=>debtStatus(d)==='soldee').length}</div><div class="st-l">Dettes soldées</div></div>
+    </div>
+    <div class="pills">
+      <button class="pill ${filterDebt==='all'?'active':''}" onclick="filterDebt='all';rDebts()">Toutes</button>
+      <button class="pill ${filterDebt==='en_cours'?'active':''}" onclick="filterDebt='en_cours';rDebts()">En cours</button>
+      <button class="pill ${filterDebt==='soldee'?'active':''}" onclick="filterDebt='soldee';rDebts()">Soldées</button>
+    </div>
+    ${list.length?list.map(d=>{
+      const rem=debtRemaining(d),st=debtStatus(d),pays=d.payments||[];
+      return`<div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px">
+          <div><strong style="font-size:1.05rem">${esc(clientName(d.clientId))}</strong><br><span style="color:var(--tx2);font-size:.85rem">${esc(d.description||'')} — ${fmtD(d.date)}</span></div>
+          <div style="text-align:right">
+            <span class="badge ${st==='en_cours'?'badge-red':'badge-green'}">${st==='en_cours'?'En cours':'Soldée'}</span><br>
+            <span style="font-family:Outfit;font-weight:700;font-size:1.1rem">${cfa(rem>0?rem:0)}</span>
+            <span style="color:var(--tx2);font-size:.82rem"> / ${cfa(d.amount)}</span>
+          </div>
+        </div>
+        ${pays.length?`<div class="pay-list">${pays.map(p=>`<div class="pay-row"><span class="pay-amt" style="color:var(--green)">+${cfa(p.amount)}</span><span class="pay-date">${fmtD(p.date)}${p.note?' — '+esc(p.note):''}</span></div>`).join('')}</div>`:''}
+        <div style="margin-top:12px;display:flex;gap:8px">
+          ${st==='en_cours'?`<button class="btn btn-s btn-sm" onclick="addPayment('${d.id}')">+ Paiement</button>`:''}
+          <button class="btn-icon" onclick="delDebt('${d.id}')" title="Supprimer">&times;</button>
+        </div>
+      </div>`;
+    }).join(''):'<div class="empty"><p>Aucune dette enregistrée</p></div>'}`;
+}
+
+function addDebt(){
+  if(!S.clients.length){toast('Ajoutez d\'abord un client','err');return}
+  const opts=S.clients.map(c=>`<option value="${c.id}">${esc(c.name)} (${c.type==='grossiste'?'Grossiste':'Final'})</option>`).join('');
+  openModal('Nouvelle dette',`
+    <div class="form-g"><label>Client *</label><select id="m-client">${opts}</select></div>
+    <div class="form-g"><label>Montant (FCFA) *</label><input id="m-amount" type="number" min="0"></div>
+    <div class="form-g"><label>Description</label><input id="m-desc" placeholder="Ex: Achat 20 plateaux"></div>
+    <div class="form-g"><label>Date</label><input id="m-date" type="date" value="${today()}"></div>
+    <div class="modal-ft"><button class="btn btn-s" onclick="closeModal()">Annuler</button><button class="btn btn-p" onclick="saveDebt()">Enregistrer</button></div>`);
+}
+function saveDebt(){
+  const amt=parseFloat(document.getElementById('m-amount').value);
+  if(!amt||amt<=0){toast('Montant invalide','err');return}
+  S.debts.push({id:gid(),clientId:document.getElementById('m-client').value,amount:amt,description:document.getElementById('m-desc').value.trim(),date:document.getElementById('m-date').value||today(),payments:[]});
+  save();closeModal();rDebts();toast('Dette ajoutée');
+}
+function addPayment(debtId){
+  const d=S.debts.find(x=>x.id===debtId);if(!d)return;
+  const rem=debtRemaining(d);
+  openModal('Ajouter un paiement',`
+    <p style="margin-bottom:14px">Reste à payer : <strong>${cfa(rem)}</strong></p>
+    <div class="form-g"><label>Montant du paiement (FCFA) *</label><input id="m-payamt" type="number" min="0" max="${rem}" value="${rem}"></div>
+    <div class="form-g"><label>Date</label><input id="m-paydate" type="date" value="${today()}"></div>
+    <div class="form-g"><label>Note</label><input id="m-paynote" placeholder="Ex: Acompte"></div>
+    <div class="modal-ft"><button class="btn btn-s" onclick="closeModal()">Annuler</button><button class="btn btn-p" onclick="savePayment('${debtId}')">Enregistrer</button></div>`);
+}
+function savePayment(debtId){
+  const d=S.debts.find(x=>x.id===debtId);if(!d)return;
+  const amt=parseFloat(document.getElementById('m-payamt').value);
+  if(!amt||amt<=0){toast('Montant invalide','err');return}
+  if(!d.payments)d.payments=[];
+  d.payments.push({id:gid(),amount:amt,date:document.getElementById('m-paydate').value||today(),note:document.getElementById('m-paynote').value.trim()});
+  save();closeModal();rDebts();toast(debtStatus(d)==='soldee'?'Dette soldée !':'Paiement enregistré');
+}
+async function delDebt(id){if(await showConfirm('Supprimer cette dette ?')){S.debts=S.debts.filter(x=>x.id!==id);save();rDebts();toast('Dette supprimée')}}
+
+/* ----- EXPENSES ----- */
+function rExpenses(){
+  const mo=selMonth;
+  const list=S.expenses.filter(e=>e.date.startsWith(mo)).sort((a,b)=>b.date.localeCompare(a.date));
+  const total=list.reduce((s,e)=>s+e.amount,0);
+  const byCat={};list.forEach(e=>{byCat[e.category]=(byCat[e.category]||0)+e.amount});
+  const topCat=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const pg=document.getElementById('pg-expenses');
+  pg.innerHTML=`
+    <div class="pg-hd"><h1>Dépenses</h1><button class="btn btn-p" onclick="addExpense()">+ Nouvelle dépense</button></div>
+    <div class="mo-nav"><button class="btn btn-g" onclick="chgMonth(-1)">&larr;</button><span>${moLabel(mo)}</span><button class="btn btn-g" onclick="chgMonth(1)">&rarr;</button></div>
+    <div class="stats">
+      <div class="st red"><div class="st-v">${cfa(total)}</div><div class="st-l">Total dépenses</div></div>
+      <div class="st gold"><div class="st-v">${list.length}</div><div class="st-l">Nombre d'entrées</div></div>
+      <div class="st blue"><div class="st-v">${topCat.length?topCat[0][0]:'—'}</div><div class="st-l">Catégorie principale</div></div>
+    </div>
+    ${topCat.length?`<div class="card"><h3>Par catégorie</h3>${topCat.map(([cat,amt])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bd)"><span>${cat}</span><strong>${cfa(amt)}</strong></div>`).join('')}</div>`:''}
+    ${list.length?`<div class="card" style="padding:0;overflow:hidden"><div class="tbl-wrap"><table>
+      <thead><tr><th>Date</th><th>Description</th><th>Catégorie</th><th style="text-align:right">Montant</th><th></th></tr></thead>
+      <tbody>${list.map(e=>`<tr>
+        <td>${fmtD(e.date)}</td><td>${esc(e.description)}</td>
+        <td><span class="badge badge-gold">${esc(e.category)}</span></td>
+        <td style="text-align:right;font-weight:600">${cfa(e.amount)}</td>
+        <td><button class="btn-icon" onclick="editExpense('${e.id}')" title="Modifier">&#9998;</button><button class="btn-icon" onclick="delExpense('${e.id}')">&times;</button></td>
+      </tr>`).join('')}</tbody>
+    </table></div></div>`:'<div class="empty"><p>Aucune dépense ce mois</p></div>'}`;
+}
+function addExpense(){
+  const catOpts=CATS.map(c=>`<option>${c}</option>`).join('');
+  openModal('Nouvelle dépense',`
+    <div class="form-g"><label>Description *</label><input id="m-desc"></div>
+    <div class="form-row">
+      <div class="form-g"><label>Montant (FCFA) *</label><input id="m-amount" type="number" min="0"></div>
+      <div class="form-g"><label>Catégorie</label><select id="m-cat">${catOpts}</select></div>
+    </div>
+    <div class="form-g"><label>Date</label><input id="m-date" type="date" value="${today()}"></div>
+    <div class="modal-ft"><button class="btn btn-s" onclick="closeModal()">Annuler</button><button class="btn btn-p" onclick="saveExpense()">Enregistrer</button></div>`);
+}
+function saveExpense(){
+  const desc=document.getElementById('m-desc').value.trim(),amt=parseFloat(document.getElementById('m-amount').value);
+  if(!desc||!amt||amt<=0){toast('Description et montant requis','err');return}
+  S.expenses.push({id:gid(),description:desc,amount:amt,category:document.getElementById('m-cat').value,date:document.getElementById('m-date').value||today()});
+  save();closeModal();rExpenses();toast('Dépense ajoutée');
+}
+function editExpense(id){
+  const e=S.expenses.find(x=>x.id===id);if(!e)return;
+  const catOpts=CATS.map(c=>`<option ${c===e.category?'selected':''}>${c}</option>`).join('');
+  openModal('Modifier la dépense',`
+    <div class="form-g"><label>Description *</label><input id="m-desc" value="${esc(e.description)}"></div>
+    <div class="form-row">
+      <div class="form-g"><label>Montant (FCFA) *</label><input id="m-amount" type="number" min="0" value="${e.amount}"></div>
+      <div class="form-g"><label>Catégorie</label><select id="m-cat">${catOpts}</select></div>
+    </div>
+    <div class="form-g"><label>Date</label><input id="m-date" type="date" value="${e.date}"></div>
+    <div class="modal-ft"><button class="btn btn-s" onclick="closeModal()">Annuler</button><button class="btn btn-p" onclick="updExpense('${id}')">Enregistrer</button></div>`);
+}
+function updExpense(id){
+  const e=S.expenses.find(x=>x.id===id);if(!e)return;
+  const desc=document.getElementById('m-desc').value.trim(),amt=parseFloat(document.getElementById('m-amount').value);
+  if(!desc||!amt){toast('Champs requis','err');return}
+  e.description=desc;e.amount=amt;e.category=document.getElementById('m-cat').value;e.date=document.getElementById('m-date').value;
+  save();closeModal();rExpenses();toast('Dépense modifiée');
+}
+async function delExpense(id){if(await showConfirm('Supprimer cette dépense ?')){S.expenses=S.expenses.filter(x=>x.id!==id);save();rExpenses();toast('Dépense supprimée')}}
+
+/* ----- STOCK ----- */
+function rStock(){
+  const t=today(),mo=selMonth;
+  const opening=getOpening(t);
+  const received=getReceived(t);
+  const entry=S.daily.find(e=>e.date===t);
+  const closing=entry?entry.closingStock:null;
+  const sold=(opening!=null&&closing!=null)?opening+received-closing:null;
+  const needsInit=opening===null&&S.initialStock===null;
+
+  const moDaily=S.daily.filter(d=>d.date.startsWith(mo)).sort((a,b)=>b.date.localeCompare(a.date));
+  const moRec=S.receptions.filter(r=>r.date.startsWith(mo)).sort((a,b)=>b.date.localeCompare(a.date));
+  const totalRec=moRec.reduce((s,r)=>s+r.quantity,0);
+  const totalSold=moDaily.reduce((s,d)=>{if(d.closingStock==null)return s;const op=getOpening(d.date);const rc=getReceived(d.date);return s+(op!=null?op+rc-d.closingStock:0)},0);
+
+  const pg=document.getElementById('pg-stock');
+  let todayHtml;
+  if(needsInit){
+    todayHtml=`<div class="card" style="text-align:center;padding:32px"><h3>Configuration initiale</h3><p style="color:var(--tx2);margin:8px 0 16px">Définissez votre stock de départ pour commencer le suivi quotidien.</p><button class="btn btn-p" onclick="setInitStock()">Définir le stock initial</button></div>`;
+  }else{
+    todayHtml=`<div class="today"><h3>Aujourd'hui — ${fmtD(t)}</h3>
+      <div class="today-grid">
+        <div class="today-item"><span class="tl">Ouverture</span><span class="tv">${opening??'—'}</span></div>
+        <div class="today-item"><span class="tl">Reçu</span><span class="tv">${received}</span></div>
+        <div class="today-item"><span class="tl">Clôture</span><span class="tv">${closing!=null?closing:'—'}</span></div>
+        <div class="today-item hl"><span class="tl">Vendus</span><span class="tv">${sold!=null?sold:'—'}</span></div>
+      </div>
+      <div class="today-actions">
+        <button class="btn btn-p" onclick="addReception()">+ Réception</button>
+        ${closing==null?'<button class="btn btn-s" onclick="doInventory()">Inventaire du soir</button>':'<button class="btn btn-s" onclick="editInventory()">Corriger clôture</button>'}
+      </div>
+    </div>`;
+  }
+
+  pg.innerHTML=`
+    <div class="pg-hd"><h1>Stock</h1></div>
+    ${todayHtml}
+    <div class="mo-nav"><button class="btn btn-g" onclick="chgMonth(-1)">&larr;</button><span>${moLabel(mo)}</span><button class="btn btn-g" onclick="chgMonth(1)">&rarr;</button></div>
+    <div class="stats">
+      <div class="st gold"><div class="st-v">${totalRec}</div><div class="st-l">Plateaux reçus</div></div>
+      <div class="st green"><div class="st-v">${totalSold}</div><div class="st-l">Plateaux vendus</div></div>
+      <div class="st blue"><div class="st-v">${cfa(getLatestCost())}</div><div class="st-l">Dernier prix de revient</div></div>
+    </div>
+    <div class="card"><h3>Réceptions</h3>
+      ${moRec.length?`<div class="tbl-wrap"><table>
+        <thead><tr><th>Date</th><th>Quantité</th><th>Prix unitaire</th><th>Total</th><th></th></tr></thead>
+        <tbody>${moRec.map(r=>`<tr><td>${fmtD(r.date)}</td><td>${r.quantity}</td><td>${cfa(r.costPrice)}</td><td>${cfa(r.quantity*r.costPrice)}</td><td><button class="btn-icon" onclick="delReception('${r.id}')">&times;</button></td></tr>`).join('')}</tbody>
+      </table></div>`:'<p class="empty" style="padding:12px">Aucune réception ce mois</p>'}
+    </div>
+    <div class="card"><h3>Journal quotidien</h3>
+      ${moDaily.length?`<div class="tbl-wrap"><table>
+        <thead><tr><th>Date</th><th>Ouverture</th><th>Reçu</th><th>Clôture</th><th>Vendus</th></tr></thead>
+        <tbody>${moDaily.map(d=>{const op=getOpening(d.date);const rc=getReceived(d.date);const sl=(op!=null&&d.closingStock!=null)?op+rc-d.closingStock:'—';return`<tr><td>${fmtD(d.date)}</td><td>${op??'—'}</td><td>${rc}</td><td>${d.closingStock??'—'}</td><td><strong>${sl}</strong></td></tr>`}).join('')}</tbody>
+      </table></div>`:'<p class="empty" style="padding:12px">Aucune entrée ce mois</p>'}
+    </div>`;
+}
+
+function setInitStock(){
+  openModal('Stock initial',`
+    <div class="form-g"><label>Nombre de plateaux en stock *</label><input id="m-qty" type="number" min="0"></div>
+    <div class="form-hint">Ce sera votre stock d'ouverture pour aujourd'hui.</div>
+    <div class="modal-ft"><button class="btn btn-s" onclick="closeModal()">Annuler</button><button class="btn btn-p" onclick="saveInitStock()">Enregistrer</button></div>`);
+}
+function saveInitStock(){
+  const q=parseInt(document.getElementById('m-qty').value);
+  if(isNaN(q)||q<0){toast('Quantité invalide','err');return}
+  S.initialStock=q;save();closeModal();rStock();toast('Stock initial défini');
+}
+function addReception(){
+  openModal('Nouvelle réception',`
+    <div class="form-g"><label>Date</label><input id="m-date" type="date" value="${today()}"></div>
+    <div class="form-row">
+      <div class="form-g"><label>Quantité (plateaux) *</label><input id="m-qty" type="number" min="1"></div>
+      <div class="form-g"><label>Prix de revient/plateau (FCFA) *</label><input id="m-cost" type="number" min="0" value="${getLatestCost()||''}"></div>
+    </div>
+    <div class="form-g"><label>Fournisseur</label><input id="m-sup"></div>
+    <div class="modal-ft"><button class="btn btn-s" onclick="closeModal()">Annuler</button><button class="btn btn-p" onclick="saveReception()">Enregistrer</button></div>`);
+}
+function saveReception(){
+  const q=parseInt(document.getElementById('m-qty').value),c=parseFloat(document.getElementById('m-cost').value);
+  if(!q||q<=0||isNaN(c)){toast('Quantité et prix requis','err');return}
+  S.receptions.push({id:gid(),date:document.getElementById('m-date').value||today(),quantity:q,costPrice:c,supplier:document.getElementById('m-sup').value.trim()});
+  save();closeModal();rStock();toast('Réception enregistrée');
+}
+async function delReception(id){if(await showConfirm('Supprimer cette réception ?')){S.receptions=S.receptions.filter(x=>x.id!==id);save();rStock();toast('Réception supprimée')}}
+
+function doInventory(){
+  const t=today(),opening=getOpening(t),received=getReceived(t);
+  openModal('Inventaire du soir',`
+    <p style="margin-bottom:14px">Stock d'ouverture : <strong>${opening??0}</strong> + Reçu : <strong>${received}</strong> = <strong>${(opening??0)+received}</strong> plateaux disponibles</p>
+    <div class="form-g"><label>Stock de clôture (inventaire physique) *</label><input id="m-closing" type="number" min="0"></div>
+    <div class="modal-ft"><button class="btn btn-s" onclick="closeModal()">Annuler</button><button class="btn btn-p" onclick="saveInventory()">Enregistrer</button></div>`);
+}
+function editInventory(){
+  const t=today(),entry=S.daily.find(e=>e.date===t);
+  openModal('Corriger la clôture',`
+    <div class="form-g"><label>Stock de clôture corrigé *</label><input id="m-closing" type="number" min="0" value="${entry?entry.closingStock:''}"></div>
+    <div class="modal-ft"><button class="btn btn-s" onclick="closeModal()">Annuler</button><button class="btn btn-p" onclick="saveInventory()">Enregistrer</button></div>`);
+}
+function saveInventory(){
+  const cl=parseInt(document.getElementById('m-closing').value),t=today();
+  if(isNaN(cl)||cl<0){toast('Valeur invalide','err');return}
+  let entry=S.daily.find(e=>e.date===t);
+  if(entry){entry.closingStock=cl}else{S.daily.push({date:t,closingStock:cl})}
+  save();closeModal();rStock();toast('Inventaire enregistré');
+}
+
+/* ----- MARGINS ----- */
+function rMargins(){
+  const mo=selMonth;
+  const list=S.sales.filter(s=>s.date.startsWith(mo)).sort((a,b)=>b.date.localeCompare(a.date));
+  const totalRev=list.reduce((s,x)=>s+x.quantity*x.sellingPrice,0);
+  const totalCost=list.reduce((s,x)=>s+x.quantity*x.costPrice,0);
+  const totalMargin=totalRev-totalCost;
+  const totalQty=list.reduce((s,x)=>s+x.quantity,0);
+
+  const byDate={};list.forEach(s=>{if(!byDate[s.date])byDate[s.date]={rev:0,cost:0,qty:0};byDate[s.date].rev+=s.quantity*s.sellingPrice;byDate[s.date].cost+=s.quantity*s.costPrice;byDate[s.date].qty+=s.quantity});
+
+  const pg=document.getElementById('pg-margins');
+  pg.innerHTML=`
+    <div class="pg-hd"><h1>Marges</h1><button class="btn btn-p" onclick="addSale()">+ Vente du jour</button></div>
+    <div class="mo-nav"><button class="btn btn-g" onclick="chgMonth(-1)">&larr;</button><span>${moLabel(mo)}</span><button class="btn btn-g" onclick="chgMonth(1)">&rarr;</button></div>
+    <div class="stats">
+      <div class="st blue"><div class="st-v">${cfa(totalRev)}</div><div class="st-l">Chiffre d'affaires</div></div>
+      <div class="st green"><div class="st-v">${cfa(totalMargin)}</div><div class="st-l">Marge brute</div></div>
+      <div class="st gold"><div class="st-v">${totalQty}</div><div class="st-l">Plateaux vendus</div></div>
+      <div class="st red"><div class="st-v">${cfa(totalCost)}</div><div class="st-l">Coût total</div></div>
+    </div>
+    ${Object.keys(byDate).length?`<div class="card"><h3>Résumé par jour</h3><div class="tbl-wrap"><table>
+      <thead><tr><th>Date</th><th>Plateaux</th><th>Chiffre d'aff.</th><th>Coût</th><th style="text-align:right">Marge</th></tr></thead>
+      <tbody>${Object.entries(byDate).sort((a,b)=>b[0].localeCompare(a[0])).map(([d,v])=>`<tr><td>${fmtD(d)}</td><td>${v.qty}</td><td>${cfa(v.rev)}</td><td>${cfa(v.cost)}</td><td style="text-align:right;font-weight:600;color:${v.rev-v.cost>=0?'var(--green)':'var(--red)'}">${cfa(v.rev-v.cost)}</td></tr>`).join('')}</tbody>
+    </table></div></div>`:''}
+    ${list.length?`<div class="card"><h3>Détail des ventes</h3><div class="tbl-wrap"><table>
+      <thead><tr><th>Date</th><th>Qté</th><th>Prix vente</th><th>Prix revient</th><th>Marge</th><th></th></tr></thead>
+      <tbody>${list.map(s=>{const m=(s.sellingPrice-s.costPrice)*s.quantity;return`<tr>
+        <td>${fmtD(s.date)}</td><td>${s.quantity}</td><td>${cfa(s.sellingPrice)}</td><td>${cfa(s.costPrice)}</td>
+        <td style="font-weight:600;color:${m>=0?'var(--green)':'var(--red)'}">${cfa(m)}</td>
+        <td><button class="btn-icon" onclick="editSale('${s.id}')" title="Modifier">&#9998;</button><button class="btn-icon" onclick="delSale('${s.id}')">&times;</button></td>
+      </tr>`}).join('')}</tbody>
+    </table></div></div>`:'<div class="empty"><p>Aucune vente ce mois</p></div>'}`;
+}
+
+function addSale(){
+  const lc=getLatestCost();
+  openModal('Enregistrer une vente',`
+    <div class="form-g"><label>Date</label><input id="m-date" type="date" value="${today()}"></div>
+    <div class="form-row">
+      <div class="form-g"><label>Plateaux vendus *</label><input id="m-qty" type="number" min="1"></div>
+      <div class="form-g"><label>Prix de vente/plateau (FCFA) *</label><input id="m-sell" type="number" min="0"></div>
+    </div>
+    <div class="form-g"><label>Prix de revient/plateau (FCFA)</label><input id="m-cost" type="number" min="0" value="${lc||''}"><div class="form-hint">Pré-rempli depuis la dernière réception</div></div>
+    <div class="modal-ft"><button class="btn btn-s" onclick="closeModal()">Annuler</button><button class="btn btn-p" onclick="saveSale()">Enregistrer</button></div>`);
+}
+function saveSale(){
+  const q=parseInt(document.getElementById('m-qty').value),sp=parseFloat(document.getElementById('m-sell').value),cp=parseFloat(document.getElementById('m-cost').value);
+  if(!q||q<=0||isNaN(sp)){toast('Quantité et prix de vente requis','err');return}
+  S.sales.push({id:gid(),date:document.getElementById('m-date').value||today(),quantity:q,sellingPrice:sp,costPrice:cp||0});
+  save();closeModal();rMargins();toast('Vente enregistrée');
+}
+function editSale(id){
+  const s=S.sales.find(x=>x.id===id);if(!s)return;
+  openModal('Modifier la vente',`
+    <div class="form-g"><label>Date</label><input id="m-date" type="date" value="${s.date}"></div>
+    <div class="form-row">
+      <div class="form-g"><label>Plateaux vendus *</label><input id="m-qty" type="number" min="1" value="${s.quantity}"></div>
+      <div class="form-g"><label>Prix de vente/plateau *</label><input id="m-sell" type="number" min="0" value="${s.sellingPrice}"></div>
+    </div>
+    <div class="form-g"><label>Prix de revient/plateau</label><input id="m-cost" type="number" min="0" value="${s.costPrice}"></div>
+    <div class="modal-ft"><button class="btn btn-s" onclick="closeModal()">Annuler</button><button class="btn btn-p" onclick="updSale('${id}')">Enregistrer</button></div>`);
+}
+function updSale(id){
+  const s=S.sales.find(x=>x.id===id);if(!s)return;
+  const q=parseInt(document.getElementById('m-qty').value),sp=parseFloat(document.getElementById('m-sell').value),cp=parseFloat(document.getElementById('m-cost').value);
+  if(!q||isNaN(sp)){toast('Champs requis','err');return}
+  s.date=document.getElementById('m-date').value;s.quantity=q;s.sellingPrice=sp;s.costPrice=cp||0;
+  save();closeModal();rMargins();toast('Vente modifiée');
+}
+async function delSale(id){if(await showConfirm('Supprimer cette vente ?')){S.sales=S.sales.filter(x=>x.id!==id);save();rMargins();toast('Vente supprimée')}}
+
+/* ----- SETTINGS ----- */
+function rSettings(){
+  const dataSize=new Blob([JSON.stringify(S)]).size;
+  const pg=document.getElementById('pg-settings');
+  pg.innerHTML=`
+    <div class="pg-hd"><h1>Paramètres</h1></div>
+    <div class="card"><h3>Exporter les données</h3>
+      <p style="color:var(--tx2);margin-bottom:14px;font-size:.9rem">Téléchargez une sauvegarde complète de vos données pour les garder en sécurité.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-p" onclick="expJSON()">Export JSON (complet)</button>
+        <button class="btn btn-s" onclick="expCSV('clients')">CSV Clients</button>
+        <button class="btn btn-s" onclick="expCSV('expenses')">CSV Dépenses</button>
+        <button class="btn btn-s" onclick="expCSV('sales')">CSV Ventes</button>
+      </div>
+    </div>
+    <div class="card"><h3>Importer des données</h3>
+      <p style="color:var(--tx2);margin-bottom:14px;font-size:.9rem">Restaurez vos données depuis un fichier JSON exporté précédemment.</p>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="doImport(this)">
+      <button class="btn btn-s" onclick="document.getElementById('importFile').click()">Importer un fichier JSON</button>
+    </div>
+    <div class="card"><h3>Données locales</h3>
+      <p style="color:var(--tx2);margin-bottom:14px;font-size:.9rem">Vos données occupent environ ${(dataSize/1024).toFixed(1)} Ko dans le navigateur. ${S.clients.length} clients, ${S.debts.length} dettes, ${S.expenses.length} dépenses, ${S.receptions.length} réceptions, ${S.sales.length} ventes.</p>
+      <button class="btn btn-d" onclick="clearAll()">Effacer toutes les données</button>
+    </div>
+    <div class="card"><h3>À propos</h3>
+      <p style="color:var(--tx2);font-size:.9rem"><strong>Nenu Jolof</strong> — Plateforme de suivi des ventes d'oeufs<br>Les données sont sauvegardées automatiquement dans votre navigateur.<br>Pensez à exporter régulièrement pour sécuriser vos données.</p>
+    </div>`;
+}
+
+function csvStr(headers,rows){
+  const e=v=>{const s=String(v??'');return(s.includes(',')||s.includes('"')||s.includes('\n'))?'"'+s.replace(/"/g,'""')+'"':s};
+  return[headers.join(','),...rows.map(r=>r.map(e).join(','))].join('\n');
+}
+
+async function doSave(filename,data){
+  if(DL){try{await DL.save({filename,data});toast('Fichier exporté');return}catch(e){if(e.code==='declined')return;}}
+  try{await navigator.clipboard.writeText(data);toast('Copié dans le presse-papier ('+filename+')','info')}
+  catch(e){openModal('Export — '+filename,`<textarea style="width:100%;height:200px;font-family:monospace;font-size:.8rem;background:var(--bgI);border:1px solid var(--bd);border-radius:var(--rS);padding:8px;color:var(--tx)">${esc(data)}</textarea><div class="modal-ft"><button class="btn btn-p" onclick="closeModal()">Fermer</button></div>`)}
+}
+
+function expJSON(){
+  doSave('nenujolof_backup_'+today()+'.json',JSON.stringify({version:1,exported:new Date().toISOString(),data:S},null,2));
+}
+function expCSV(type){
+  if(type==='clients'){
+    doSave('clients.csv',csvStr(['Nom','Téléphone','Type','Adresse','Notes'],S.clients.map(c=>[c.name,c.phone,c.type==='grossiste'?'Grossiste':'Client final',c.address||'',c.notes||''])));
+  }else if(type==='expenses'){
+    doSave('depenses.csv',csvStr(['Date','Description','Catégorie','Montant'],S.expenses.map(e=>[e.date,e.description,e.category,e.amount])));
+  }else if(type==='sales'){
+    doSave('ventes.csv',csvStr(['Date','Quantité','Prix vente','Prix revient','Marge'],S.sales.map(s=>[s.date,s.quantity,s.sellingPrice,s.costPrice,(s.sellingPrice-s.costPrice)*s.quantity])));
+  }
+}
+
+function doImport(input){
+  const f=input.files[0];if(!f)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const json=JSON.parse(e.target.result);
+      const data=json.data||json;
+      if(data.clients||data.debts||data.expenses){
+        S=Object.assign(defaults(),data);save();render();toast('Données importées');rSettings();
+      }else{toast('Format non reconnu','err')}
+    }catch(err){toast('Fichier JSON invalide','err')}
+  };
+  reader.readAsText(f);input.value='';
+}
+
+async function clearAll(){
+  if(await showConfirm('Effacer TOUTES les données ? Cette action est irréversible.')){
+    S=defaults();save();render();toast('Données effacées');
+  }
+}
+
+/* ===== DOWNLOADS INIT ===== */
+async function initDL(){
+  try{if(window.claude){DL=await claude.use('downloads')}}catch(e){}
+}
+
+/* ===== INIT ===== */
+S=load();
+selMonth=curMo();
+if(sessionStorage.getItem('nj_auth')==='1')showApp();
+initDL();
+</script>
