@@ -249,17 +249,66 @@ tr:hover td{background:var(--bgH)}
 <!-- TOAST -->
 <div class="toast-box" id="toastBox"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8/dist/umd/supabase.min.js"></script>
 <script>
 /* ===== CONSTANTS ===== */
 const AUTH_E='nenujolof@gmail.com',AUTH_P='NenuJolof2025',DB='nj_data';
-const CATS=['Transport','Loyer','Salaires','Électricité','Fournitures','Téléphone','Emballage','Divers'];
+const SUPA_URL='https://vnvhupmczqwclgmdhqea.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZudmh1cG1jenF3Y2xnbWRocWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODcxNTgsImV4cCI6MjEwNDQ2MzE1OH0.HuxQ1YTqAvfyhar8CGcxypzuMNeho43LT-Gciqfks6c';
+let sb=null,cloudOK=false;
+const CATS=['Transport','Téléphone','Loyer','Salaire','Électricité','Divers'];
 
 /* ===== STATE ===== */
 let S,selMonth,curPage='dashboard',DL=null,pendConf=null,searchQ='',filterType='all',filterDebt='all',filterStat='all';
 
 function defaults(){return{initialStock:null,initialStockDate:null,clients:[],debts:[],expenses:[],receptions:[],daily:[],sales:[]}}
 function load(){try{const d=localStorage.getItem(DB);return d?JSON.parse(d):defaults()}catch(e){return defaults()}}
-function save(){try{localStorage.setItem(DB,JSON.stringify(S))}catch(e){toast('Erreur de sauvegarde','err')}}
+function save(){try{localStorage.setItem(DB,JSON.stringify(S))}catch(e){toast('Erreur de sauvegarde locale','err')};cloudPush()}
+
+/* ===== CLOUD SYNC ===== */
+function cloudPush(){
+  if(!sb)return;
+  sb.from('app_state').upsert({id:1,data:S,updated_at:new Date().toISOString()}).then(({error})=>{
+    if(error)console.warn('Cloud push failed',error);
+    else cloudOK=true;
+  });
+}
+async function cloudPull(){
+  if(!sb)return null;
+  try{
+    const{data,error}=await sb.from('app_state').select('data').eq('id',1).single();
+    if(error||!data||!data.data)return null;
+    return data.data;
+  }catch(e){return null}
+}
+async function cloudRestore(){
+  const d=await cloudPull();
+  if(d&&(d.clients||d.debts||d.expenses)){
+    S=Object.assign(defaults(),d);save();render();
+    toast('Données restaurées depuis le cloud');
+  }else{toast('Aucune donnée trouvée dans le cloud','err')}
+}
+async function initCloud(){
+  try{
+    sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+    const cloud=await cloudPull();
+    const localHas=S.clients.length||S.debts.length||S.expenses.length||S.receptions.length||S.sales.length;
+    if(cloud&&(cloud.clients||cloud.debts||cloud.expenses)){
+      const cloudHas=cloud.clients?.length||cloud.debts?.length||cloud.expenses?.length||cloud.receptions?.length||cloud.sales?.length;
+      if(!localHas&&cloudHas){
+        S=Object.assign(defaults(),cloud);
+        try{localStorage.setItem(DB,JSON.stringify(S))}catch(e){}
+        render();
+        toast('Données chargées depuis le cloud','ok');
+      }else if(localHas){
+        cloudPush();
+      }
+    }else if(localHas){
+      cloudPush();
+    }
+    cloudOK=true;
+  }catch(e){console.warn('Cloud init failed',e)}
+}
 
 /* ===== UTILS ===== */
 function gid(){return Date.now().toString(36)+Math.random().toString(36).substr(2,6)}
@@ -675,7 +724,8 @@ function saveExpense(){
 }
 function editExpense(id){
   const e=S.expenses.find(x=>x.id===id);if(!e)return;
-  const catOpts=CATS.map(c=>`<option ${c===e.category?'selected':''}>${c}</option>`).join('');
+  const catList=CATS.includes(e.category)?CATS:CATS.concat([e.category]);
+  const catOpts=catList.map(c=>`<option ${c===e.category?'selected':''}>${c}</option>`).join('');
   openModal('Modifier la dépense',`
     <div class="form-g"><label>Description *</label><input id="m-desc" value="${esc(e.description)}"></div>
     <div class="form-row">
@@ -925,8 +975,15 @@ function rSettings(){
       <p style="color:var(--tx2);margin-bottom:14px;font-size:.9rem">Vos données occupent environ ${(dataSize/1024).toFixed(1)} Ko dans le navigateur. ${S.clients.length} clients, ${S.debts.length} dettes, ${S.expenses.length} dépenses, ${S.receptions.length} réceptions, ${S.sales.length} ventes.</p>
       <button class="btn btn-d" onclick="clearAll()">Effacer toutes les données</button>
     </div>
+    <div class="card"><h3>Sauvegarde Cloud (Supabase)</h3>
+      <p style="color:var(--tx2);margin-bottom:14px;font-size:.9rem">Vos données sont automatiquement synchronisées avec le cloud à chaque modification. Statut : <strong style="color:${cloudOK?'var(--green)':'var(--red)'}">●</strong> ${cloudOK?'Connecté':'Non connecté'}</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-p" onclick="cloudPush();toast('Synchronisation lancée')">Forcer la synchro vers le cloud</button>
+        <button class="btn btn-s" onclick="cloudRestore()">Restaurer depuis le cloud</button>
+      </div>
+    </div>
     <div class="card"><h3>À propos</h3>
-      <p style="color:var(--tx2);font-size:.9rem"><strong>Nenu Jolof</strong> — Plateforme de suivi des ventes d'oeufs<br>Les données sont sauvegardées automatiquement dans votre navigateur.<br>Pensez à exporter régulièrement pour sécuriser vos données.</p>
+      <p style="color:var(--tx2);font-size:.9rem"><strong>Nenu Jolof</strong> — Plateforme de suivi des ventes d'oeufs<br>Les données sont sauvegardées automatiquement dans votre navigateur et synchronisées avec Supabase.<br>En cas de perte de données locales, utilisez "Restaurer depuis le cloud".</p>
     </div>`;
 }
 
@@ -985,4 +1042,5 @@ S=load();
 selMonth=curMo();
 if(sessionStorage.getItem('nj_auth')==='1')showApp();
 initDL();
+initCloud();
 </script>
