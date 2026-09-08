@@ -252,34 +252,63 @@ tr:hover td{background:var(--bgH)}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8/dist/umd/supabase.min.js"></script>
 <script>
 /* ===== CONSTANTS ===== */
-const AUTH_E='nenujolof@gmail.com',AUTH_P='NenuJolof2025',DB='nj_data';
+const DB='nj_data';
+/* Cle "anon" : publique par conception, elle n'ouvre aucun acces par elle-meme.
+   Les donnees sont protegees par la connexion Supabase de l'utilisateur et par
+   les regles RLS de la table app_state, qui n'autorisent que le role authenticated.
+   Ne JAMAIS mettre la cle service_role ici : elle contourne toutes les regles. */
 const SUPA_URL='https://vnvhupmczqwclgmdhqea.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZudmh1cG1jenF3Y2xnbWRocWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODcxNTgsImV4cCI6MjEwNDQ2MzE1OH0.HuxQ1YTqAvfyhar8CGcxypzuMNeho43LT-Gciqfks6c';
 let sb=null,cloudOK=false;
 const CATS=['Transport','Téléphone','Loyer','Salaire','Électricité','Divers'];
 
 /* ===== STATE ===== */
-let S,selMonth,curPage='dashboard',DL=null,pendConf=null,searchQ='',filterType='all',filterDebt='all',filterStat='all';
+let S,selMonth,curPage='dashboard',DL=null,pendConf=null,searchQ='',filterType='all',filterDebt='all',filterStat='all',curEmail='';
 
 function defaults(){return{initialStock:null,initialStockDate:null,clients:[],debts:[],expenses:[],receptions:[],daily:[],sales:[]}}
 function load(){try{const d=localStorage.getItem(DB);return d?JSON.parse(d):defaults()}catch(e){return defaults()}}
 function save(){try{localStorage.setItem(DB,JSON.stringify(S))}catch(e){toast('Erreur de sauvegarde locale','err')};cloudPush()}
 
 /* ===== CLOUD SYNC ===== */
-function cloudPush(){
-  if(!sb)return;
-  sb.from('app_state').upsert({id:1,data:S,updated_at:new Date().toISOString()}).then(({error})=>{
-    if(error)console.warn('Cloud push failed',error);
-    else cloudOK=true;
-  });
+/* Cree le client Supabase. Appele avant la connexion, car l'ecran de login s'en sert. */
+function initSb(){
+  if(sb)return sb;
+  try{sb=window.supabase.createClient(SUPA_URL,SUPA_KEY)}
+  catch(e){console.warn('Client Supabase indisponible',e)}
+  return sb;
+}
+async function cloudPush(){
+  if(!sb)return false;
+  try{
+    const{error}=await sb.from('app_state').upsert({id:1,data:S,updated_at:new Date().toISOString()});
+    cloudOK=!error;
+    if(error)console.warn('Echec de la synchro vers le cloud',error);
+    return !error;
+  }catch(e){cloudOK=false;console.warn('Echec de la synchro vers le cloud',e);return false}
 }
 async function cloudPull(){
   if(!sb)return null;
   try{
     const{data,error}=await sb.from('app_state').select('data').eq('id',1).single();
-    if(error||!data||!data.data)return null;
-    return data.data;
-  }catch(e){return null}
+    cloudOK=!error;
+    if(error){console.warn('Echec de la lecture du cloud',error);return null}
+    return data&&data.data?data.data:null;
+  }catch(e){cloudOK=false;return null}
+}
+async function syncNow(){
+  const ok=await cloudPush();
+  toast(ok?'Données synchronisées':'Échec de la synchro — vérifiez votre connexion',ok?'ok':'err');
+  if(curPage==='settings')render();
+}
+async function changePassword(){
+  const a=document.getElementById('pw1').value,b=document.getElementById('pw2').value;
+  if(a.length<8){toast('Le mot de passe doit faire au moins 8 caractères','err');return}
+  if(a!==b){toast('Les deux mots de passe ne correspondent pas','err');return}
+  if(!sb){toast('Serveur injoignable','err');return}
+  const{error}=await sb.auth.updateUser({password:a});
+  if(error){toast('Impossible de changer le mot de passe','err');console.warn(error);return}
+  document.getElementById('pw1').value='';document.getElementById('pw2').value='';
+  toast('Mot de passe modifié');
 }
 async function cloudRestore(){
   const d=await cloudPull();
@@ -290,7 +319,7 @@ async function cloudRestore(){
 }
 async function initCloud(){
   try{
-    sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+    if(!initSb())return;
     const cloud=await cloudPull();
     const localHas=S.clients.length||S.debts.length||S.expenses.length||S.receptions.length||S.sales.length;
     if(cloud&&(cloud.clients||cloud.debts||cloud.expenses)){
@@ -306,8 +335,7 @@ async function initCloud(){
     }else if(localHas){
       cloudPush();
     }
-    cloudOK=true;
-  }catch(e){console.warn('Cloud init failed',e)}
+  }catch(e){cloudOK=false;console.warn('Echec de l initialisation du cloud',e)}
 }
 
 /* ===== UTILS ===== */
@@ -319,14 +347,38 @@ function curMo(){return today().substring(0,7)}
 function moLabel(ym){const[y,m]=ym.split('-');return new Date(y,m-1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'})}
 function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
-/* ===== AUTH ===== */
-function doLogin(){
+/* ===== AUTH =====
+   Le mot de passe est verifie par Supabase, jamais par ce fichier. La session
+   obtenue est ce qui donne acces aux donnees : sans elle, les regles RLS
+   refusent toute lecture et toute ecriture. */
+async function doLogin(){
   const e=document.getElementById('logEmail').value.trim();
   const p=document.getElementById('logPass').value;
-  if(e===AUTH_E&&p===AUTH_P){sessionStorage.setItem('nj_auth','1');showApp()}
-  else document.getElementById('logErr').textContent='Email ou mot de passe incorrect';
+  const err=document.getElementById('logErr');
+  if(!e||!p){err.textContent='Entrez votre email et votre mot de passe';return}
+  if(!initSb()){err.textContent='Serveur injoignable. Verifiez votre connexion internet.';return}
+  err.textContent='Connexion en cours...';
+  try{
+    const{data,error}=await sb.auth.signInWithPassword({email:e,password:p});
+    if(error){
+      err.textContent=/network|fetch/i.test(error.message)
+        ?'Serveur injoignable. Verifiez votre connexion internet.'
+        :'Email ou mot de passe incorrect';
+      return;
+    }
+    err.textContent='';
+    document.getElementById('logPass').value='';
+    curEmail=data&&data.user?data.user.email:e;
+    showApp();
+    await initCloud();
+  }catch(ex){err.textContent='Serveur injoignable. Verifiez votre connexion internet.'}
 }
-function doLogout(){sessionStorage.removeItem('nj_auth');document.getElementById('app').hidden=true;document.getElementById('loginScreen').hidden=false}
+async function doLogout(){
+  try{if(sb)await sb.auth.signOut()}catch(e){}
+  cloudOK=false;
+  document.getElementById('app').hidden=true;
+  document.getElementById('loginScreen').hidden=false;
+}
 function showApp(){document.getElementById('loginScreen').hidden=true;document.getElementById('app').hidden=false;nav('dashboard')}
 document.getElementById('logPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 
@@ -978,9 +1030,17 @@ function rSettings(){
     <div class="card"><h3>Sauvegarde Cloud (Supabase)</h3>
       <p style="color:var(--tx2);margin-bottom:14px;font-size:.9rem">Vos données sont automatiquement synchronisées avec le cloud à chaque modification. Statut : <strong style="color:${cloudOK?'var(--green)':'var(--red)'}">●</strong> ${cloudOK?'Connecté':'Non connecté'}</p>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-p" onclick="cloudPush();toast('Synchronisation lancée')">Forcer la synchro vers le cloud</button>
+        <button class="btn btn-p" onclick="syncNow()">Forcer la synchro vers le cloud</button>
         <button class="btn btn-s" onclick="cloudRestore()">Restaurer depuis le cloud</button>
       </div>
+    </div>
+    <div class="card"><h3>Sécurité</h3>
+      <p style="color:var(--tx2);margin-bottom:14px;font-size:.9rem">Connecté en tant que <strong>${esc(curEmail)}</strong>. Changez votre mot de passe si vous pensez qu'une autre personne le connaît.</p>
+      <div class="form-row">
+        <div class="form-g"><label>Nouveau mot de passe</label><input id="pw1" type="password" autocomplete="new-password"></div>
+        <div class="form-g"><label>Confirmer</label><input id="pw2" type="password" autocomplete="new-password"></div>
+      </div>
+      <button class="btn btn-p" onclick="changePassword()">Changer le mot de passe</button>
     </div>
     <div class="card"><h3>À propos</h3>
       <p style="color:var(--tx2);font-size:.9rem"><strong>Nenu Jolof</strong> — Plateforme de suivi des ventes d'oeufs<br>Les données sont sauvegardées automatiquement dans votre navigateur et synchronisées avec Supabase.<br>En cas de perte de données locales, utilisez "Restaurer depuis le cloud".</p>
@@ -1040,7 +1100,14 @@ async function initDL(){
 /* ===== INIT ===== */
 S=load();
 selMonth=curMo();
-if(sessionStorage.getItem('nj_auth')==='1')showApp();
 initDL();
-initCloud();
+/* Supabase conserve la session entre les visites : si elle est encore valide,
+   on rouvre l'application directement, sinon on reste sur l'ecran de connexion. */
+(async function initAuth(){
+  if(!initSb())return;
+  try{
+    const{data}=await sb.auth.getSession();
+    if(data&&data.session){curEmail=data.session.user.email;showApp();await initCloud()}
+  }catch(e){console.warn('Session illisible',e)}
+})();
 </script>
