@@ -1,0 +1,13 @@
+{
+  "name": "nenujolof",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Plateforme de suivi des ventes d'oeufs — Nenu Jolof (Sénégal)",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "license": "UNLICENSED"
+}

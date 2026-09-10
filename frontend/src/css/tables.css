@@ -1,0 +1,44 @@
+/* =====================================================================
+   TABLEAUX — lignes aerees, filets fins, en-tete discret
+
+   Le conteneur .tbl-wrap absorbe le debordement horizontal pour que la
+   page elle-meme ne defile jamais lateralement.
+
+   L'en-tete est colle en haut et legerement teinte : sur une longue
+   liste, on garde le nom des colonnes sous les yeux sans avoir a poser
+   un trait epais.
+   ===================================================================== */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+table{width:100%;border-collapse:collapse;font-size:.89rem}
+
+thead th{
+  position:sticky;top:0;z-index:1;
+  background:var(--gS3);
+  text-align:left;padding:13px 16px;
+  font-family:'Outfit',sans-serif;
+  font-weight:600;color:var(--tx3);font-size:.71rem;
+  text-transform:uppercase;letter-spacing:.09em;
+  border-bottom:1px solid var(--bd);white-space:nowrap;
+}
+
+td{padding:14px 16px;border-bottom:1px solid var(--bd);vertical-align:middle}
+tbody tr{transition:background var(--tr)}
+tbody tr:nth-child(even){background:var(--bgZ)}
+tbody tr:hover{background:var(--gold-bg)}
+tbody tr:last-child td{border-bottom:none}
+
+/* Dans une carte a bord franc (.card-flat), les cellules de rive
+   s'alignent sur la marge interieure des autres cartes. */
+.card-flat th:first-child,.card-flat td:first-child{padding-left:24px}
+.card-flat th:last-child,.card-flat td:last-child{padding-right:24px}
+
+/* Alignements utilitaires, pour eviter le style inline dans les gabarits */
+.ta-r{text-align:right}
+.nowrap{white-space:nowrap}
+.muted{color:var(--tx3)}
+.row-off{opacity:.5}
+.row-off:hover{opacity:.85}
+
+/* Cellule secondaire sous un libelle principal */
+.cell-sub{display:block;color:var(--tx3);font-size:.77rem;line-height:1.35;margin-top:2px}

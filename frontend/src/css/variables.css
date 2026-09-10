@@ -1,0 +1,147 @@
+/* =====================================================================
+   VARIABLES — palette, echelle, ombres, rythme
+
+   Principes de la palette :
+   - L'encre est le brun de la marque (#241D15). Il porte le texte, les
+     pills actives, les fonds pleins. C'est lui qui donne le caractere.
+   - L'or est un ACCENT, pas une couleur de fond. Il est reserve a l'action
+     principale, a l'onglet actif et aux valeurs de stock. Employe partout,
+     il ne ressort nulle part.
+   - Les teintes claires (--*-bg) sont des couleurs pleines, pas des alpha :
+     elles restent nettes quel que soit le fond qui passe dessous.
+
+   Profondeur : les surfaces ne sont pas des aplats mais de tres legers
+   degrades verticaux (--gS*), doubles d'un filet de lumiere interieur
+   (--shIn). C'est ce qui donne aux cartes leur relief de papier sans
+   recourir a des ombres lourdes.
+
+   Les trois blocs decrivent le meme jeu de variables :
+     1. :root                       -> theme clair (valeurs de reference)
+     2. @media prefers-color-scheme -> theme sombre suivant le systeme
+     3. :root[data-theme="dark"]     -> theme sombre force par l'utilisateur
+   Une couleur ne doit jamais etre definie uniquement dans 2 ou 3.
+   ===================================================================== */
+:root{
+  color-scheme:light dark;
+
+  /* --- Accent de marque --- */
+  --gold:#B57F14;--gold-h:#996A0B;--gold-l:#E3B95F;--gold-d:#7C5507;
+  --gold-bg:#FBF2DF;--gold-bd:#EDD9AF;
+  --gold-gr:linear-gradient(180deg,#C68F22 0%,#AC760D 100%);
+  --gold-gr-h:linear-gradient(180deg,#D19A2C 0%,#9A6A08 100%);
+  --gold-glow:rgba(181,127,20,.32);
+
+  /* --- Couleurs de sens --- */
+  --green:#2E7D4F;--green-bg:#E8F3EB;--green-bd:#CBE3D4;--green-l:#4FA173;
+  --red:#C0392B;--red-bg:#FAEAE8;--red-bd:#F0D1CD;--red-l:#DB6B5C;
+  --blue:#2B6CB0;--blue-bg:#E8F0F8;--blue-bd:#D1DFEF;--blue-l:#5B93D0;
+
+  /* --- Surfaces --- */
+  --bg:#F6F3EE;          /* canevas de la page */
+  --bg2:#FFFFFF;         /* cartes et panneaux */
+  --bg3:#FBF9F5;         /* tuiles a l'interieur d'une carte */
+  --bgS:#FFFFFF;         /* sidebar */
+  --bgI:#F3F0EA;         /* champs de saisie */
+  --bgH:#F9F6F1;         /* survol */
+  --bgZ:#FCFAF7;         /* lignes paires des tableaux */
+  --bgM:rgba(32,25,17,.42);
+
+  /* Degrades de surface : 1 a 2 % d'ecart, jamais plus. Au-dela, le
+     degrade se voit et la carte prend un air de bouton. */
+  --gS2:linear-gradient(180deg,#FFFFFF 0%,#FDFBF8 100%);
+  --gS3:linear-gradient(180deg,#FCFAF7 0%,#F8F5F0 100%);
+  --gSS:linear-gradient(180deg,#FFFFFF 0%,#FCFAF6 100%);   /* sidebar */
+
+  /* --- Encre --- */
+  --tx:#221B13;          /* texte principal = brun de la marque */
+  --tx2:#6B6052;         /* texte secondaire */
+  --tx3:#9A8F7E;         /* legendes, unites */
+  --txS:#6B6052;         /* sidebar au repos */
+  --txSA:#221B13;        /* sidebar actif */
+  --txInv:#FFFDF9;       /* texte sur aplat d'encre ou d'or */
+
+  /* --- Traits et profondeur --- */
+  --bd:#EAE3D8;          /* filet standard */
+  --bd2:#D9D0C1;         /* filet appuye */
+  --bdA:rgba(181,127,20,.34);  /* filet accentue au survol */
+
+  --sh:0 1px 2px rgba(46,35,22,.05),0 1px 1px rgba(46,35,22,.03);
+  --shH:0 12px 28px -14px rgba(46,35,22,.22),0 2px 6px -2px rgba(46,35,22,.07);
+  --shL:0 32px 64px -22px rgba(46,35,22,.3),0 4px 14px -6px rgba(46,35,22,.1);
+  --shF:0 0 0 3px rgba(181,127,20,.17);   /* halo de focus */
+  --shIn:inset 0 1px 0 rgba(255,255,255,.9);  /* filet de lumiere haut */
+  --shBtn:0 1px 2px rgba(46,35,22,.14),inset 0 1px 0 rgba(255,255,255,.22);
+
+  /* --- Geometrie --- */
+  --r:15px;--rS:10px;--rXS:7px;--rL:20px;--rF:999px;--sw:256px;
+
+  /* --- Rythme vertical et horizontal --- */
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px;--s7:32px;--s8:44px;
+
+  /* --- Mouvement --- */
+  --tr:.16s cubic-bezier(.4,0,.2,1);
+  --trS:.3s cubic-bezier(.4,0,.2,1);
+  --trB:.42s cubic-bezier(.22,1,.36,1);   /* sortie longue, pour les entrees */
+}
+
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --gold:#E2AF52;--gold-h:#F1C77E;--gold-l:#F1D298;--gold-d:#B98A2E;
+  --gold-bg:#2C2216;--gold-bd:#413118;
+  --gold-gr:linear-gradient(180deg,#D9A748 0%,#B7862B 100%);
+  --gold-gr-h:linear-gradient(180deg,#E7B655 0%,#C29033 100%);
+  --gold-glow:rgba(226,175,82,.3);
+
+  --green:#5BB47F;--green-bg:#16271C;--green-bd:#26402F;--green-l:#7ACB9B;
+  --red:#E4796B;--red-bg:#2B1613;--red-bd:#43231E;--red-l:#EE9587;
+  --blue:#6DA8E2;--blue-bg:#13202C;--blue-bd:#213244;--blue-l:#8CBDEC;
+
+  --bg:#100E0C;--bg2:#1A1613;--bg3:#211C17;--bgS:#151110;
+  --bgI:#241E19;--bgH:#221D18;--bgZ:#1D1814;--bgM:rgba(0,0,0,.68);
+
+  --gS2:linear-gradient(180deg,#1D1815 0%,#181411 100%);
+  --gS3:linear-gradient(180deg,#231E19 0%,#1E1915 100%);
+  --gSS:linear-gradient(180deg,#171312 0%,#131010 100%);
+
+  --tx:#F0E9DF;--tx2:#A79B8E;--tx3:#82776A;
+  --txS:#A79B8E;--txSA:#F6F0E7;--txInv:#17120D;
+
+  --bd:#2E2822;--bd2:#3D352C;--bdA:rgba(226,175,82,.34);
+
+  --sh:0 1px 2px rgba(0,0,0,.34),0 1px 1px rgba(0,0,0,.2);
+  --shH:0 12px 28px -14px rgba(0,0,0,.66),0 2px 6px -2px rgba(0,0,0,.4);
+  --shL:0 32px 64px -22px rgba(0,0,0,.76),0 4px 14px -6px rgba(0,0,0,.5);
+  --shF:0 0 0 3px rgba(226,175,82,.22);
+  --shIn:inset 0 1px 0 rgba(255,255,255,.045);
+  --shBtn:0 1px 2px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.12);
+}}
+
+:root[data-theme="dark"]{
+  --gold:#E2AF52;--gold-h:#F1C77E;--gold-l:#F1D298;--gold-d:#B98A2E;
+  --gold-bg:#2C2216;--gold-bd:#413118;
+  --gold-gr:linear-gradient(180deg,#D9A748 0%,#B7862B 100%);
+  --gold-gr-h:linear-gradient(180deg,#E7B655 0%,#C29033 100%);
+  --gold-glow:rgba(226,175,82,.3);
+
+  --green:#5BB47F;--green-bg:#16271C;--green-bd:#26402F;--green-l:#7ACB9B;
+  --red:#E4796B;--red-bg:#2B1613;--red-bd:#43231E;--red-l:#EE9587;
+  --blue:#6DA8E2;--blue-bg:#13202C;--blue-bd:#213244;--blue-l:#8CBDEC;
+
+  --bg:#100E0C;--bg2:#1A1613;--bg3:#211C17;--bgS:#151110;
+  --bgI:#241E19;--bgH:#221D18;--bgZ:#1D1814;--bgM:rgba(0,0,0,.68);
+
+  --gS2:linear-gradient(180deg,#1D1815 0%,#181411 100%);
+  --gS3:linear-gradient(180deg,#231E19 0%,#1E1915 100%);
+  --gSS:linear-gradient(180deg,#171312 0%,#131010 100%);
+
+  --tx:#F0E9DF;--tx2:#A79B8E;--tx3:#82776A;
+  --txS:#A79B8E;--txSA:#F6F0E7;--txInv:#17120D;
+
+  --bd:#2E2822;--bd2:#3D352C;--bdA:rgba(226,175,82,.34);
+
+  --sh:0 1px 2px rgba(0,0,0,.34),0 1px 1px rgba(0,0,0,.2);
+  --shH:0 12px 28px -14px rgba(0,0,0,.66),0 2px 6px -2px rgba(0,0,0,.4);
+  --shL:0 32px 64px -22px rgba(0,0,0,.76),0 4px 14px -6px rgba(0,0,0,.5);
+  --shF:0 0 0 3px rgba(226,175,82,.22);
+  --shIn:inset 0 1px 0 rgba(255,255,255,.045);
+  --shBtn:0 1px 2px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.12);
+}

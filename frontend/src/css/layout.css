@@ -1,0 +1,150 @@
+/* =====================================================================
+   LAYOUT — coquille : sidebar, zone principale, entete de page
+
+   La sidebar est claire et separee par un simple filet. Le bandeau brun
+   plein de la version precedente pesait un quart de l'ecran en permanence
+   et ecrasait le contenu ; l'identite de marque passe desormais par
+   l'encre du texte, par le logo et par l'or de l'onglet actif, pas par
+   un aplat.
+
+   Les regles responsive sont regroupees dans responsive.css, charge en
+   dernier pour pouvoir surcharger tous les autres fichiers.
+   ===================================================================== */
+.app{display:flex;min-height:100vh;min-height:100dvh;width:100%}
+
+/* --- Sidebar --- */
+.side{
+  width:var(--sw);background:var(--gSS);
+  border-right:1px solid var(--bd);
+  display:flex;flex-direction:column;
+  position:fixed;top:0;left:0;bottom:0;z-index:100;
+  transition:transform var(--trS);
+}
+
+/* --- Marque --- */
+/* Le logo est pose sur une pastille d'or : c'est le seul aplat de couleur
+   permanent de l'interface, et il suffit a ancrer la marque. */
+.side-brand{
+  display:flex;align-items:center;gap:12px;
+  padding:20px 18px 16px;margin-bottom:2px;
+}
+.side-brand svg{
+  width:38px;height:38px;border-radius:12px;
+  box-shadow:0 5px 14px -5px var(--gold-glow);
+}
+.side-brand .bt{display:flex;flex-direction:column;min-width:0;line-height:1.15}
+.side-brand .bn{
+  font-family:'Outfit',sans-serif;font-weight:700;font-size:1.08rem;
+  color:var(--tx);letter-spacing:-.024em;
+}
+.side-brand .bs{font-size:.72rem;color:var(--tx3);letter-spacing:.012em}
+
+.nav-list{list-style:none;padding:4px 12px 14px;flex:1;overflow-y:auto}
+
+/* Intertitre de groupe : structure la navigation sans ajouter de trait */
+.nav-sec{
+  font-family:'Outfit',sans-serif;font-size:.67rem;font-weight:600;
+  text-transform:uppercase;letter-spacing:.11em;color:var(--tx3);
+  padding:18px 12px 7px;
+}
+.nav-list>.nav-sec:first-child{padding-top:6px}
+
+/* Onglet : le repere actif est une reglette d'or a gauche, doublee d'un
+   fond ambre tres pale. La reglette se deploie en hauteur — un onglet qui
+   s'active ne clignote pas, il se remplit. */
+.nav-item{
+  position:relative;
+  display:flex;align-items:center;gap:11px;
+  padding:9px 12px;border-radius:var(--rS);
+  color:var(--txS);cursor:pointer;
+  font-size:.91rem;font-weight:500;margin-bottom:2px;
+  transition:background var(--tr),color var(--tr);
+}
+.nav-item::before{
+  content:"";position:absolute;left:-8px;top:50%;
+  width:3px;height:0;border-radius:0 var(--rF) var(--rF) 0;
+  background:var(--gold);transform:translateY(-50%);
+  transition:height var(--trB);
+}
+.nav-item svg{width:18px;height:18px;color:var(--tx3);transition:color var(--tr)}
+.nav-item:hover{background:var(--bgH);color:var(--txSA)}
+.nav-item:hover svg{color:var(--tx2)}
+.nav-item.active{
+  background:var(--gold-bg);color:var(--gold-h);font-weight:600;
+  box-shadow:inset 0 0 0 1px var(--gold-bd);
+}
+.nav-item.active::before{height:20px}
+.nav-item.active svg{color:var(--gold)}
+
+/* --- Pied de sidebar : synchro, theme, deconnexion --- */
+.side-foot{border-top:1px solid var(--bd);padding:10px 12px 12px;background:var(--bgS)}
+.side-tools{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+
+.sync{
+  display:flex;align-items:center;gap:7px;
+  padding:6px 8px;border-radius:var(--rS);
+  font-size:.78rem;color:var(--tx3);min-width:0;
+}
+.sync svg{width:15px;height:15px}
+.sync span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sync.ok{color:var(--green)}
+.sync.err{color:var(--red)}
+.sync.busy{color:var(--gold)}
+.sync.busy svg{animation:spin 1.1s linear infinite}
+
+.theme-btn{
+  display:flex;align-items:center;justify-content:center;
+  width:32px;height:32px;border:1px solid var(--bd);border-radius:var(--rS);
+  background:var(--gS2);color:var(--tx2);cursor:pointer;box-shadow:var(--sh);
+  transition:background var(--tr),color var(--tr),border-color var(--tr),transform var(--tr);
+}
+.theme-btn:hover{background:var(--bgH);color:var(--gold);border-color:var(--gold-bd)}
+.theme-btn:active{transform:scale(.94)}
+.theme-btn svg{width:15px;height:15px}
+
+.nav-out{
+  display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+  padding:9px 12px;border:none;border-radius:var(--rS);background:none;
+  color:var(--txS);cursor:pointer;font-size:.9rem;font-family:inherit;
+  transition:background var(--tr),color var(--tr);
+}
+.nav-out svg{width:17px;height:17px;color:var(--tx3);transition:color var(--tr)}
+.nav-out:hover{background:var(--red-bg);color:var(--red)}
+.nav-out:hover svg{color:var(--red)}
+
+/* --- Zone principale --- */
+/* Pas de largeur maximale : la zone occupe toute la largeur restante. La
+   marge interieure suit la taille de l'ecran (clamp) pour ne pas coller
+   aux bords sur grand ecran ni gaspiller la place sur petit. */
+.main{flex:1;min-width:0;width:100%;margin-left:var(--sw);padding:34px clamp(24px,2.6vw,56px) 72px}
+.page{width:100%;max-width:none}
+
+.hamburger{
+  display:none;position:fixed;top:12px;left:12px;z-index:200;
+  background:var(--gS2);border:1px solid var(--bd);border-radius:var(--rS);
+  width:42px;height:42px;align-items:center;justify-content:center;
+  cursor:pointer;box-shadow:var(--shH);font-size:1.2rem;color:var(--tx);
+  transition:background var(--tr),transform var(--tr);
+}
+.hamburger:hover{background:var(--bgH)}
+.hamburger:active{transform:scale(.94)}
+.side-overlay{
+  display:none;position:fixed;inset:0;z-index:90;
+  background:var(--bgM);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+  animation:fadeIn var(--tr);
+}
+
+/* --- Entete de page --- */
+/* Le titre est suivi d'un filet qui court jusqu'au bord : il pose la
+   ligne de depart du contenu sans encadrer quoi que ce soit. */
+.pg-hd{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  gap:16px;margin-bottom:26px;padding-bottom:18px;flex-wrap:wrap;
+  border-bottom:1px solid var(--bd);
+}
+.pg-hd .pg-sub{
+  color:var(--tx2);font-size:.8rem;text-transform:capitalize;
+  font-family:'Outfit',sans-serif;font-weight:600;letter-spacing:.01em;
+  padding:5px 12px;border-radius:var(--rF);
+  background:var(--gS3);border:1px solid var(--bd);
+}

@@ -1,0 +1,74 @@
+/* =====================================================================
+   BASE — reset, echelle typographique, elements natifs
+
+   L'echelle typographique porte la hierarchie : un titre de page se lit
+   comme un titre, une valeur cle comme une valeur cle, une legende comme
+   une legende. C'est le contraste de taille et de graisse qui structure
+   l'ecran, pas les bordures ni les couleurs.
+   ===================================================================== */
+[hidden]{display:none!important}
+*{box-sizing:border-box;margin:0;padding:0}
+
+html{-webkit-text-size-adjust:100%}
+
+body{
+  font-family:'Source Sans 3',-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size:.95rem;
+  background:var(--bg);color:var(--tx);line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  min-height:100vh;
+}
+
+/* Ambiance du canevas : deux halos d'or tres dilues, fixes, en haut a
+   gauche et en bas a droite. Ils ne se lisent pas comme une couleur —
+   ils empechent seulement le fond de paraitre plat sur un grand ecran.
+   ::before plutot qu'un background sur body : le degrade ne se repete
+   pas et ne se deforme pas au defilement. */
+body::before{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(1100px 620px at 12% -8%,var(--gold-bg),transparent 62%),
+    radial-gradient(900px 560px at 105% 108%,var(--gold-bg),transparent 60%);
+  opacity:.55;
+}
+
+/* Titres : Outfit, resserre. Le crenage negatif evite l'effet « etale »
+   des grandes tailles geometriques. */
+h1,h2,h3,h4{font-family:'Outfit',sans-serif;font-weight:600;text-wrap:balance}
+h1{font-size:1.9rem;letter-spacing:-.032em;line-height:1.16}
+h2{font-size:1.35rem;letter-spacing:-.02em}
+h3{font-size:1.02rem;letter-spacing:-.012em}
+h4{font-size:.95rem}
+
+a{color:var(--gold);text-decoration:none;transition:color var(--tr)}
+a:hover{color:var(--gold-h);text-decoration:underline;text-underline-offset:2px}
+
+input,select,textarea,button{font-family:inherit;font-size:inherit}
+strong{font-weight:600}
+
+/* Chiffres alignes en colonne : les montants restent comparables d'une
+   ligne a l'autre. */
+.num,.st-v,.tv,.hero-v,.mini-v,.big-n,table{font-variant-numeric:tabular-nums}
+
+/* Sur-titre : petites capitales espacees, pour nommer un bloc sans
+   concurrencer les valeurs qu'il contient. */
+.eyebrow{
+  font-family:'Outfit',sans-serif;font-size:.71rem;font-weight:600;
+  text-transform:uppercase;letter-spacing:.1em;color:var(--tx3);
+}
+
+/* Garde-fou : une icone posee par icon() dans un contexte non prevu prend
+   la taille du texte au lieu de s'etaler sur toute la largeur disponible.
+   Chaque composant qui a besoin d'une autre taille la redefinit. */
+svg{width:1.2em;height:1.2em;flex-shrink:0}
+
+/* Barres de defilement discretes */
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:var(--rF);border:3px solid transparent;background-clip:content-box}
+*::-webkit-scrollbar-thumb:hover{background:var(--tx3);background-clip:content-box;border:3px solid transparent}
+
+/* Focus visible au clavier, jamais a la souris */
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:var(--rXS)}
+::selection{background:var(--gold-bg);color:var(--tx)}

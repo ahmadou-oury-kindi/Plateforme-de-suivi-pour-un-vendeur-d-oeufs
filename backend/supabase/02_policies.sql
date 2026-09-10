@@ -50,3 +50,4 @@ select policyname, cmd, roles::text
 from pg_policies
 where schemaname = 'public' and tablename = 'app_state'
 order by policyname;
+

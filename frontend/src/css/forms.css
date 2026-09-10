@@ -1,0 +1,65 @@
+/* =====================================================================
+   FORMULAIRES — champs, selects, textareas, barre de recherche
+
+   Un champ au repos est creux : fond legerement plus sombre que la carte
+   et ombre interieure d'un pixel. Au focus il se remplit de blanc et
+   prend le halo dore. La saisie devient ainsi le point le plus clair de
+   l'ecran, la ou se trouve l'attention.
+   ===================================================================== */
+.form-g{margin-bottom:16px}
+.form-g label{
+  display:block;font-size:.8rem;font-weight:600;
+  color:var(--tx2);margin-bottom:7px;letter-spacing:.008em;
+}
+.form-g input,.form-g select,.form-g textarea{
+  width:100%;padding:11px 13px;
+  border:1px solid var(--bd2);border-radius:var(--rS);
+  background:var(--bgI);color:var(--tx);outline:none;
+  box-shadow:inset 0 1px 2px rgba(46,35,22,.05);
+  transition:border-color var(--tr),box-shadow var(--tr),background var(--tr);
+}
+.form-g input::placeholder,.search-bar input::placeholder{color:var(--tx3)}
+.form-g input:hover,.form-g select:hover,.form-g textarea:hover{border-color:var(--tx3)}
+.form-g input:focus,.form-g select:focus,.form-g textarea:focus{
+  border-color:var(--gold);background:var(--bg2);
+  box-shadow:var(--shF),inset 0 1px 2px rgba(46,35,22,.03);
+}
+.form-g textarea{resize:vertical;min-height:72px;line-height:1.5}
+.form-g input[type="date"]{cursor:pointer}
+.form-g input[type="file"]{padding:9px;box-shadow:none}
+
+/* Chevron dessine en CSS : le triangle natif de Chrome ne suit ni la
+   couleur du texte ni le theme sombre. */
+.form-g select{
+  appearance:none;-webkit-appearance:none;
+  padding-right:36px;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,var(--tx3) 50%),
+                   linear-gradient(135deg,var(--tx3) 50%,transparent 50%);
+  background-position:calc(100% - 19px) calc(50% + 1px),calc(100% - 14px) calc(50% + 1px);
+  background-size:5px 5px,5px 5px;
+  background-repeat:no-repeat;
+}
+
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-hint{font-size:.78rem;color:var(--tx3);margin-top:6px;line-height:1.5}
+
+/* --- Barre de recherche --- */
+.search-bar{position:relative;margin-bottom:18px;max-width:380px}
+.search-bar input{
+  width:100%;padding:11px 14px 11px 39px;
+  border:1px solid var(--bd2);border-radius:var(--rF);
+  background:var(--bgI);color:var(--tx);outline:none;
+  box-shadow:inset 0 1px 2px rgba(46,35,22,.05);
+  transition:border-color var(--tr),box-shadow var(--tr),background var(--tr);
+}
+.search-bar input:hover{border-color:var(--tx3)}
+.search-bar input:focus{
+  border-color:var(--gold);background:var(--bg2);
+  box-shadow:var(--shF),inset 0 1px 2px rgba(46,35,22,.03);
+}
+.search-bar svg{
+  position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  width:16px;height:16px;color:var(--tx3);pointer-events:none;
+  transition:color var(--tr);
+}
+.search-bar input:focus+svg,.search-bar:focus-within svg{color:var(--gold)}

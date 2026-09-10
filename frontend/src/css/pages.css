@@ -1,0 +1,266 @@
+/* =====================================================================
+   PAGES — styles propres a un ecran : connexion, graphique, carte du
+   jour (stock), dettes, repartition des depenses, parametres
+   ===================================================================== */
+
+/* --- CONNEXION --- */
+/* Un seul objet au centre d'un fond profond : la carte est le seul point
+   clair de l'ecran, on ne peut regarder ailleurs. */
+.login-wrap{
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;min-height:100dvh;padding:24px;position:relative;z-index:300;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -12%,var(--gold-bg),transparent 66%),
+    radial-gradient(ellipse 70% 55% at 50% 112%,var(--gold-bg),transparent 64%),
+    var(--bg);
+}
+.login-card{
+  position:relative;overflow:hidden;
+  width:100%;max-width:392px;
+  background:var(--gS2);border:1px solid var(--bd);border-radius:var(--rL);
+  padding:42px 36px 34px;box-shadow:var(--shL),var(--shIn);text-align:center;
+  animation:fadeUp .42s cubic-bezier(.22,1,.36,1);
+}
+/* Filet d'or en tete de carte, degrade sur les bords : signe la marque
+   sans ajouter de bloc de couleur. */
+.login-card::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+}
+.login-logo{
+  width:58px;height:58px;margin:0 auto 20px;
+  filter:drop-shadow(0 8px 18px var(--gold-glow));
+}
+.login-card h1{margin-bottom:6px;font-size:1.65rem}
+.login-card p{color:var(--tx3);margin-bottom:30px;font-size:.9rem}
+.login-card .form-g{text-align:left;margin-bottom:14px}
+.login-err{color:var(--red);font-size:.83rem;margin:2px 0 8px;min-height:1.2em}
+.btn-login{
+  width:100%;padding:13px;border:1px solid var(--gold-d);border-radius:var(--rS);
+  background:var(--gold-gr);color:var(--txInv);cursor:pointer;margin-top:10px;
+  font-family:'Outfit',sans-serif;font-weight:600;font-size:.98rem;
+  letter-spacing:.01em;box-shadow:var(--shBtn);
+  transition:background var(--tr),box-shadow var(--tr),transform var(--tr);
+}
+.btn-login:hover{
+  background:var(--gold-gr-h);
+  box-shadow:0 8px 22px -8px var(--gold-glow),var(--shBtn);
+  transform:translateY(-1px);
+}
+.btn-login:active{transform:translateY(1px)}
+.btn-login[disabled]{opacity:.6;cursor:default;transform:none;box-shadow:var(--shBtn)}
+
+/* --- NAVIGATION PAR MOIS --- */
+.mo-nav{
+  display:inline-flex;align-items:center;gap:4px;
+  margin-bottom:20px;padding:4px;
+  background:var(--gS2);border:1px solid var(--bd);border-radius:var(--rF);
+  box-shadow:var(--sh),var(--shIn);
+}
+.mo-nav span{
+  font-family:'Outfit',sans-serif;font-weight:600;font-size:.92rem;
+  min-width:150px;text-align:center;text-transform:capitalize;
+  letter-spacing:-.008em;
+}
+.mo-nav .btn-g{border-radius:50%;width:32px;height:32px;padding:0;font-size:.9rem}
+.mo-nav .btn-g:hover{background:var(--gold-bg);color:var(--gold-h)}
+
+/* --- GRAPHIQUE DES VENTES --- */
+/* Trois repères horizontaux et une ligne de base : sans eux, l'oeil n'a
+   aucun moyen de comparer deux barres eloignees. */
+.chart-plot{position:relative;height:212px;padding-top:26px}
+.chart-lines{
+  position:absolute;left:0;right:0;top:26px;bottom:0;
+  display:flex;flex-direction:column;justify-content:space-between;
+  pointer-events:none;
+}
+.chart-lines i{display:block;border-top:1px dashed var(--bd)}
+.chart-lines i:last-child{border-top:1px solid var(--bd2)}
+
+.chart-cols{position:relative;height:100%;display:flex;align-items:flex-end;gap:10px}
+.chart-col{
+  flex:1;height:100%;display:flex;align-items:flex-end;justify-content:center;
+  border-radius:var(--rS) var(--rS) 0 0;transition:background var(--tr);
+}
+.chart-col:hover{background:var(--gold-bg)}
+.chart-bar{
+  position:relative;width:100%;max-width:40px;min-height:3px;
+  border-radius:7px 7px 2px 2px;
+  background:linear-gradient(180deg,var(--gold-l) 0%,var(--gold) 100%);
+  box-shadow:0 4px 12px -6px var(--gold-glow),inset 0 1px 0 rgba(255,255,255,.32);
+  transition:height .5s cubic-bezier(.22,1,.36,1),filter var(--tr),box-shadow var(--tr);
+  animation:growBar .55s cubic-bezier(.22,1,.36,1);
+}
+.chart-col:hover .chart-bar{filter:brightness(1.07);box-shadow:0 8px 18px -8px var(--gold-glow),inset 0 1px 0 rgba(255,255,255,.32)}
+.chart-bar.zero{background:var(--bd2);box-shadow:none}
+.chart-v{
+  position:absolute;bottom:100%;left:50%;transform:translateX(-50%);
+  margin-bottom:7px;font-size:.74rem;font-weight:600;color:var(--tx2);
+  transition:color var(--tr);
+}
+.chart-col:hover .chart-v{color:var(--tx)}
+
+.chart-axis{display:flex;gap:10px;margin-top:11px}
+.chart-axis span{
+  flex:1;text-align:center;font-size:.75rem;
+  color:var(--tx3);text-transform:capitalize;
+}
+.chart-axis span.is-today{color:var(--gold-h);font-weight:600}
+
+/* --- ETATS VIDES --- */
+.empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:56px 20px;color:var(--tx2);
+}
+.empty-ico{
+  display:flex;align-items:center;justify-content:center;
+  width:58px;height:58px;margin-bottom:18px;border-radius:var(--r);
+  background:var(--gS3);color:var(--tx3);
+  border:1px solid var(--bd);box-shadow:var(--sh);
+}
+.empty-ico svg{width:24px;height:24px}
+.empty h4{font-size:1.04rem;color:var(--tx);margin-bottom:6px}
+.empty p{font-size:.88rem;color:var(--tx3);max-width:36ch;line-height:1.55}
+.empty .btn{margin-top:20px}
+.empty-sm{padding:30px 16px}
+.empty-sm .empty-ico{width:44px;height:44px;margin-bottom:12px;border-radius:var(--rS)}
+.empty-sm .empty-ico svg{width:19px;height:19px}
+
+/* --- STOCK : la journee en cours --- */
+/* Le seul bloc a filet dore de l'application : c'est la carte qu'on vient
+   remplir chaque matin. */
+.today{
+  position:relative;overflow:hidden;
+  background:var(--gS2);border:1px solid var(--gold-bd);border-radius:var(--rL);
+  padding:26px 28px;box-shadow:var(--sh),var(--shIn);margin-bottom:16px;
+}
+.today::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(560px 240px at 0% 0%,var(--gold-bg),transparent 62%);
+}
+.today>*{position:relative}
+.today h3{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.today h3 svg{
+  width:16px;height:16px;color:var(--gold);
+  padding:6px;box-sizing:content-box;border-radius:9px;
+  background:var(--bg2);box-shadow:inset 0 0 0 1px var(--gold-bd);
+}
+.today-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.today-item{
+  padding:15px 17px;background:var(--gS3);
+  border:1px solid var(--bd);border-radius:var(--r);
+  transition:border-color var(--tr),box-shadow var(--tr),transform var(--tr);
+}
+.today-item:hover{border-color:var(--bd2);box-shadow:var(--sh);transform:translateY(-1px)}
+.today-item .tl{display:block;font-size:.76rem;color:var(--tx3)}
+.today-item .tv{
+  display:block;margin-top:4px;
+  font-family:'Outfit',sans-serif;font-size:1.55rem;font-weight:700;
+  letter-spacing:-.036em;line-height:1.1;
+}
+.today-item.hl{background:var(--gold-bg);border-color:var(--gold-bd)}
+.today-item.hl .tv{color:var(--gold-h)}
+.today-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+/* --- DETTES --- */
+.debt-hd{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px}
+.debt-name{font-family:'Outfit',sans-serif;font-size:1.1rem;font-weight:600;letter-spacing:-.018em}
+.debt-meta{color:var(--tx3);font-size:.83rem;margin-top:3px}
+.debt-amt{text-align:right}
+.debt-amt .rem{
+  font-family:'Outfit',sans-serif;font-weight:700;font-size:1.3rem;
+  letter-spacing:-.032em;margin-top:6px;
+}
+.debt-amt .tot{color:var(--tx3);font-size:.79rem}
+.debt-prog{margin-top:18px}
+
+/* Historique des reglements, en fil vertical */
+.pay-list{margin-top:16px;padding-left:16px;border-left:2px solid var(--bd)}
+.pay-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:5px 0;font-size:.86rem}
+.pay-row .pay-amt{font-weight:600;color:var(--green);white-space:nowrap}
+.pay-row .pay-date{color:var(--tx3);font-size:.8rem;text-align:right}
+.debt-actions{margin-top:18px;display:flex;gap:8px;align-items:center}
+
+/* --- DEPENSES : repartition par categorie --- */
+.cat-row{display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid var(--bd)}
+.cat-row:last-child{border-bottom:none}
+.cat-row .cat-name{flex-shrink:0;min-width:118px;font-size:.88rem}
+.cat-row .prog{flex:1}
+.cat-row .cat-amt{flex-shrink:0;font-weight:600;font-size:.88rem;min-width:104px;text-align:right}
+
+/* --- CLIENTS : poids de chaque type dans la demande --- */
+/* Meme grammaire que la repartition des depenses : un libelle, une barre
+   proportionnelle, un montant aligne a droite. La ligne du type filtre
+   est surlignee et marquee d'une reglette d'or a gauche, comme l'onglet
+   actif de la sidebar — meme signe pour la meme idee. */
+.type-row{
+  position:relative;display:flex;align-items:center;gap:14px;
+  padding:12px;margin:0 -12px;
+}
+.type-row+.type-row{border-top:1px solid var(--bd)}
+.type-row.is-sel{background:var(--gold-bg)}
+.type-row.is-sel::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--gold);border-radius:0 var(--rF) var(--rF) 0;
+}
+.type-row .t-name{flex-shrink:0;min-width:200px;display:flex;align-items:center;gap:9px}
+.type-row .t-name .muted{font-size:.79rem;white-space:nowrap}
+.type-row .prog{flex:1}
+.type-row .t-amt{
+  flex-shrink:0;min-width:168px;text-align:right;
+  font-weight:600;font-size:.88rem;line-height:1.35;
+}
+.type-row .t-amt .muted{display:block;font-weight:400;font-size:.78rem}
+
+.type-total{
+  display:flex;align-items:baseline;justify-content:space-between;gap:14px;
+  margin-top:16px;padding-top:14px;border-top:1px solid var(--bd);
+  font-family:'Outfit',sans-serif;font-weight:600;font-size:.95rem;
+}
+
+/* --- DEUX CARTES COTE A COTE --- */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.big-n{
+  font-family:'Outfit',sans-serif;font-size:2.2rem;font-weight:700;
+  line-height:1.06;letter-spacing:-.042em;
+}
+.big-n small{font-size:.95rem;color:var(--tx3);font-weight:400;letter-spacing:0}
+.big-sub{color:var(--tx3);font-size:.82rem;margin-top:5px}
+.big-sub+.prog{margin-top:16px}
+
+/* --- PARAMETRES --- */
+/* Une carte de reglages porte souvent plusieurs actions de nature
+   differente. Les .set-group les separent par un filet plutot que par
+   des cartes supplementaires : le bloc reste un seul objet a l'ecran. */
+.set-group+.set-group{margin-top:22px;padding-top:20px;border-top:1px solid var(--bd)}
+.set-group .eyebrow{display:block;margin-bottom:6px}
+.set-group .set-hint{
+  font-size:.86rem;color:var(--tx2);line-height:1.55;
+  margin-bottom:14px;max-width:64ch;
+}
+.set-mo{margin-bottom:14px}
+.set-mo .form-g{margin-bottom:0;max-width:260px}
+
+/* Sept blocs empiles sur toute la largeur laissaient les deux tiers de
+   l'ecran vides a droite. Au-dela de 1200 px, ils se rangent en
+   colonnes ; en dessous, ils reprennent leur pile naturelle. */
+@media(min-width:1200px){
+  #pg-settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:16px;align-items:start}
+  #pg-settings>.pg-hd{grid-column:1/-1}
+  #pg-settings>.card{margin-bottom:0}
+  /* Le bloc d'export porte trois familles d'actions : il prend la ligne
+     entiere, les autres se rangent deux par deux en dessous. */
+  #pg-settings>.card-wide{grid-column:1/-1}
+}
+
+.btn-group{display:flex;gap:10px;flex-wrap:wrap}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;vertical-align:middle;margin-right:6px}
+.dot.on{background:var(--green);box-shadow:0 0 0 3px var(--green-bg)}
+.dot.off{background:var(--red);box-shadow:0 0 0 3px var(--red-bg)}
+.export-area{
+  width:100%;height:220px;padding:13px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem;
+  background:var(--bgI);color:var(--tx);line-height:1.55;
+  border:1px solid var(--bd);border-radius:var(--rS);resize:vertical;
+  box-shadow:inset 0 1px 2px rgba(46,35,22,.05);
+}
