@@ -1,0 +1,321 @@
+/* =====================================================================
+   COMPOSANTS — boutons, cartes, panneaux, statistiques, badges, modale,
+   toasts, pills, barres de progression, squelettes
+
+   Regle de hierarchie des boutons : un seul bouton or par bloc, celui qui
+   porte l'action principale. Tous les autres sont neutres. C'est ce qui
+   rend l'action principale reperable au premier coup d'oeil.
+
+   Regle de profondeur : au repos, une surface se distingue par son filet
+   et un degrade d'un pour cent. L'ombre portee ne sert qu'a signaler ce
+   qui flotte reellement au-dessus du reste — survol, modale, toast.
+   ===================================================================== */
+
+/* --- BOUTONS --- */
+.btn{
+  position:relative;overflow:hidden;
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:9px 17px;border-radius:var(--rS);border:1px solid transparent;
+  cursor:pointer;white-space:nowrap;
+  font-family:'Outfit',sans-serif;font-weight:600;font-size:.88rem;
+  letter-spacing:.005em;
+  transition:background var(--tr),color var(--tr),border-color var(--tr),box-shadow var(--tr),transform var(--tr);
+}
+.btn:active{transform:translateY(1px)}
+.btn svg{width:16px;height:16px}
+
+/* Action principale : degrade d'or et halo colore au survol. Le halo
+   reprend la couleur du bouton — une ombre grise sous un bouton dore le
+   ferait paraitre sale. */
+.btn-p{
+  background:var(--gold-gr);color:var(--txInv);
+  border-color:var(--gold-d);box-shadow:var(--shBtn);
+}
+.btn-p:hover{
+  background:var(--gold-gr-h);
+  box-shadow:0 6px 18px -6px var(--gold-glow),var(--shBtn);
+  transform:translateY(-1px);
+}
+.btn-p:active{transform:translateY(0)}
+
+.btn-s{background:var(--gS2);color:var(--tx);border-color:var(--bd2);box-shadow:var(--sh)}
+.btn-s:hover{background:var(--bg2);border-color:var(--tx3);box-shadow:var(--shH);transform:translateY(-1px)}
+.btn-s:active{transform:translateY(0)}
+
+.btn-d{background:var(--red);color:#fff;box-shadow:var(--shBtn)}
+.btn-d:hover{filter:brightness(1.08);box-shadow:0 6px 18px -6px rgba(192,57,43,.45)}
+
+.btn-g{background:transparent;color:var(--tx2);padding:8px}
+.btn-g:hover{color:var(--tx);background:var(--bgH)}
+
+.btn-sm{padding:6px 12px;font-size:.82rem}
+
+/* Pastille carree : les trois actions d'une ligne forment un groupe
+   regulier, quelle que soit la largeur du glyphe qu'elles portent. */
+.btn-icon{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:30px;height:30px;
+  background:none;border:none;color:var(--tx3);cursor:pointer;
+  border-radius:var(--rXS);font-size:1.05rem;line-height:1;
+  transition:color var(--tr),background var(--tr),transform var(--tr);
+}
+.btn-icon:hover{color:var(--red);background:var(--red-bg)}
+.btn-icon:active{transform:scale(.92)}
+.btn-icon.ok:hover{color:var(--green);background:var(--green-bg)}
+.btn-icon.edit:hover{color:var(--gold);background:var(--gold-bg)}
+
+/* Onde au clic, injectee par ui/ripple.js */
+.rip{
+  position:absolute;border-radius:50%;pointer-events:none;
+  background:rgba(255,255,255,.4);transform:scale(0);
+  animation:ripple .5s ease-out forwards;
+}
+.btn-s .rip,.btn-g .rip,.pill .rip{background:rgba(110,99,85,.16)}
+
+/* --- CARTES ET PANNEAUX --- */
+/* .card : conteneur courant. .panel : bloc de tete, plus genereux. */
+.card,.panel{
+  position:relative;
+  background:var(--gS2);border:1px solid var(--bd);
+  box-shadow:var(--sh),var(--shIn);
+  transition:box-shadow var(--tr),border-color var(--tr),transform var(--tr);
+}
+.card{border-radius:var(--r);padding:22px 24px;margin-bottom:16px}
+.panel{border-radius:var(--rL);padding:26px 28px;display:flex;flex-direction:column}
+.card:hover,.panel:hover{
+  border-color:var(--bd2);
+  box-shadow:var(--shH),var(--shIn);
+  transform:translateY(-1px);
+}
+
+/* Titre de bloc : l'icone est posee sur une pastille discrete, ce qui la
+   rattache au titre au lieu de la laisser flotter dans la marge. */
+.card h3,.panel h3{display:flex;align-items:center;gap:10px;margin-bottom:16px;color:var(--tx)}
+.card h3 svg,.panel h3 svg{
+  width:16px;height:16px;color:var(--gold);
+  padding:6px;box-sizing:content-box;border-radius:9px;
+  background:var(--gold-bg);box-shadow:inset 0 0 0 1px var(--gold-bd);
+}
+.card-sub{color:var(--tx2);font-size:.89rem;margin:-10px 0 16px;max-width:62ch}
+/* Une carte qui contient un tableau ne se souleve pas au survol : le
+   pointeur y circule en permanence, le bloc entier tressauterait. */
+.card-flat{padding:0;overflow:hidden}
+.card-flat:hover{transform:none}
+
+/* --- BLOC DE TETE DU TABLEAU DE BORD --- */
+.hero{display:grid;grid-template-columns:1.4fr 1fr;gap:18px;margin-bottom:18px}
+
+/* Le premier panneau porte le chiffre du mois : un halo d'or dilue en
+   haut a droite le distingue du second sans changer sa couleur de fond. */
+.hero>.panel:first-child::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(520px 260px at 100% 0%,var(--gold-bg),transparent 68%);
+  opacity:.85;
+}
+.hero>.panel>*{position:relative}
+
+.hero-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+/* Les deux panneaux de tete font la meme hauteur, mais pas le meme
+   contenu. Les marges auto de part et d'autre du chiffre repartissent
+   l'espace libre au lieu de le laisser s'accumuler en un trou. */
+.hero-v{margin-top:auto;
+  font-family:'Outfit',sans-serif;font-weight:700;
+  font-size:clamp(2.3rem,2.6vw,3rem);line-height:1.02;
+  letter-spacing:-.042em;color:var(--tx);
+}
+.hero-u{margin-top:8px;margin-bottom:auto;color:var(--tx2);font-size:.9rem}
+
+/* Trois valeurs secondaires sous la valeur principale */
+.hero-split{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:16px;
+  margin-top:auto;padding-top:20px;border-top:1px solid var(--bd);
+}
+.mini-v{
+  font-family:'Outfit',sans-serif;font-weight:700;font-size:1.15rem;
+  letter-spacing:-.024em;line-height:1.25;color:var(--tx);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.mini-v.up{color:var(--green)}
+.mini-v.down{color:var(--red)}
+.mini-l{font-size:.76rem;color:var(--tx3);margin-top:3px;line-height:1.35}
+
+/* Jauge de couverture du stock */
+/* margin-top:auto pousse la jauge et le pied en bas du panneau : les deux
+   panneaux de tete ont la meme hauteur, leurs bas de bloc s'alignent. */
+.gauge{margin-top:auto;padding-top:20px}
+.gauge-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px}
+.gauge-hd .gl{font-size:.8rem;color:var(--tx2)}
+.gauge-hd .gv{font-family:'Outfit',sans-serif;font-weight:700;font-size:.95rem}
+.gauge-scale{display:flex;justify-content:space-between;margin-top:6px;font-size:.7rem;color:var(--tx3)}
+.hero-foot{
+  margin-top:18px;padding-top:14px;border-top:1px solid var(--bd);
+  font-size:.8rem;color:var(--tx3);
+}
+
+/* Liste des dettes en deux colonnes : avec une vingtaine de creances,
+   une carte pleine largeur par dette obligeait a defiler sans fin. */
+.debt-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:16px;align-items:start}
+.debt-list .card{margin-bottom:0}
+
+/* --- CARTES STATISTIQUES --- */
+/* Valeur d'abord, legende ensuite, icone discrete en haut a droite : on
+   scanne la colonne des chiffres sans que l'icone ne prenne le dessus.
+   Le filet de couleur en tete n'apparait qu'au survol : sept filets
+   permanents transformeraient la rangee en arc-en-ciel. */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(184px,1fr));gap:14px;margin-bottom:22px}
+.st{
+  position:relative;
+  background:var(--gS2);border:1px solid var(--bd);border-radius:var(--r);
+  padding:18px 20px 16px;box-shadow:var(--sh),var(--shIn);
+  transition:transform var(--tr),box-shadow var(--tr),border-color var(--tr);
+}
+.st::after{
+  content:"";position:absolute;left:14px;right:14px;top:0;height:2px;
+  border-radius:var(--rF);background:var(--tx3);
+  opacity:0;transition:opacity var(--tr);
+}
+.st:hover{transform:translateY(-3px);border-color:var(--bd2);box-shadow:var(--shH),var(--shIn)}
+.st:hover::after{opacity:.9}
+
+.st-ico{
+  position:absolute;top:16px;right:16px;
+  display:flex;align-items:center;justify-content:center;
+  width:32px;height:32px;border-radius:10px;
+}
+.st-ico svg{width:16px;height:16px}
+.st-v{
+  font-family:'Outfit',sans-serif;font-weight:700;
+  font-size:1.7rem;line-height:1.18;letter-spacing:-.036em;color:var(--tx);
+  padding-right:40px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.st-l{font-size:.79rem;color:var(--tx3);margin-top:4px;line-height:1.4}
+
+/* Imbriquee dans une carte, la tuile se creuse au lieu de se poser :
+   blanc sur blanc, le decoupage ne se lirait pas. Elle se resserre
+   aussi, pour tenir a plusieurs dans une demi-largeur de page. */
+.card .stats,.panel .stats{grid-template-columns:repeat(auto-fit,minmax(142px,1fr));margin-bottom:18px}
+.card .st,.panel .st{background:var(--gS3);box-shadow:none}
+.card .st:hover,.panel .st:hover{box-shadow:var(--sh)}
+
+.st.gold  .st-ico{background:var(--gold-bg);color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold-bd)}
+.st.green .st-ico{background:var(--green-bg);color:var(--green);box-shadow:inset 0 0 0 1px var(--green-bd)}
+.st.red   .st-ico{background:var(--red-bg);color:var(--red);box-shadow:inset 0 0 0 1px var(--red-bd)}
+.st.blue  .st-ico{background:var(--blue-bg);color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue-bd)}
+.st.gold::after {background:var(--gold)}
+.st.green::after{background:var(--green)}
+.st.red::after  {background:var(--red)}
+.st.blue::after {background:var(--blue)}
+
+/* --- BADGES --- */
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:3px 11px;border-radius:var(--rF);border:1px solid transparent;
+  font-size:.75rem;font-weight:600;white-space:nowrap;line-height:1.5;
+}
+.badge::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.badge-plain::before{display:none}
+.badge-green{background:var(--green-bg);border-color:var(--green-bd);color:var(--green)}
+.badge-red{background:var(--red-bg);border-color:var(--red-bd);color:var(--red)}
+.badge-blue{background:var(--blue-bg);border-color:var(--blue-bd);color:var(--blue)}
+.badge-gold{background:var(--gold-bg);border-color:var(--gold-bd);color:var(--gold-h)}
+.badge-gray{background:var(--bgI);border-color:var(--bd);color:var(--tx2)}
+.stars{color:var(--gold);font-size:.78rem;letter-spacing:1px}
+
+/* --- BARRE DE PROGRESSION --- */
+.prog{
+  height:8px;border-radius:var(--rF);background:var(--bgI);overflow:hidden;
+  box-shadow:inset 0 1px 2px rgba(46,35,22,.07);
+}
+.prog-fill{
+  height:100%;border-radius:var(--rF);
+  background:linear-gradient(90deg,var(--green-l),var(--green));
+  transition:width .6s cubic-bezier(.22,1,.36,1);
+}
+.prog-fill.gold{background:linear-gradient(90deg,var(--gold-l),var(--gold))}
+.prog-fill.red{background:linear-gradient(90deg,var(--red-l),var(--red))}
+.prog-fill.blue{background:linear-gradient(90deg,var(--blue-l),var(--blue))}
+.prog-lbl{display:flex;justify-content:space-between;gap:10px;font-size:.78rem;color:var(--tx2);margin-bottom:7px}
+
+/* --- MODALE --- */
+/* Le flou de l'arriere-plan detache la modale de la page sans avoir a
+   assombrir l'ecran davantage. */
+.modal-ov{
+  position:fixed;inset:0;background:var(--bgM);z-index:500;
+  backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);
+  display:flex;align-items:center;justify-content:center;padding:16px;
+  animation:fadeIn var(--tr);
+}
+.modal{
+  background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rL);
+  width:100%;max-width:520px;max-height:90vh;overflow-y:auto;
+  box-shadow:var(--shL);
+  animation:modalIn .26s cubic-bezier(.22,1,.36,1);
+}
+.modal-hd{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:20px 26px 16px;
+  position:sticky;top:0;background:var(--bg2);z-index:1;
+  border-bottom:1px solid var(--bd);border-radius:var(--rL) var(--rL) 0 0;
+}
+.modal-hd h3{font-size:1.1rem;margin:0}
+.modal-x{
+  background:none;border:none;font-size:1.35rem;cursor:pointer;color:var(--tx3);
+  line-height:1;padding:2px 9px;border-radius:var(--rXS);
+  transition:color var(--tr),background var(--tr);
+}
+.modal-x:hover{color:var(--tx);background:var(--bgI)}
+.modal-bd{padding:22px 26px}
+.modal-ft{
+  display:flex;gap:10px;justify-content:flex-end;
+  padding:16px 26px 22px;margin:22px -26px -22px;
+  border-top:1px solid var(--bd);background:var(--gS3);
+  border-radius:0 0 var(--rL) var(--rL);
+}
+
+/* --- TOASTS --- */
+.toast-box{position:fixed;top:18px;right:18px;z-index:600;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.toast{
+  display:flex;align-items:center;gap:11px;
+  padding:13px 17px;border-radius:var(--r);
+  font-size:.89rem;font-weight:500;color:#fff;
+  box-shadow:var(--shL);border:1px solid rgba(255,255,255,.14);
+  pointer-events:auto;animation:toastIn .28s cubic-bezier(.22,1,.36,1);
+  max-width:380px;
+}
+.toast svg{width:18px;height:18px;opacity:.95}
+.toast.out{opacity:0;transform:translateX(16px);transition:opacity .25s,transform .25s}
+.toast-ok{background:linear-gradient(180deg,#2C7551,#215A3E)}
+.toast-err{background:linear-gradient(180deg,#B93B2C,#95291D)}
+.toast-info{background:linear-gradient(180deg,#2A69A4,#1F5183)}
+
+/* --- PILLS DE FILTRE --- */
+/* Selection en aplat d'encre : lisible d'un coup d'oeil, et l'or reste
+   disponible pour les actions. */
+.pills{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.pill{
+  position:relative;overflow:hidden;
+  padding:6px 15px;border-radius:var(--rF);
+  border:1px solid var(--bd);background:var(--gS2);color:var(--tx2);
+  font-size:.83rem;font-weight:600;cursor:pointer;white-space:nowrap;
+  box-shadow:var(--sh);
+  transition:background var(--tr),color var(--tr),border-color var(--tr),box-shadow var(--tr);
+}
+.pill:hover{border-color:var(--bd2);color:var(--tx);background:var(--bg2)}
+.pill.active{
+  background:var(--tx);border-color:var(--tx);color:var(--bg2);
+  box-shadow:0 4px 12px -5px rgba(46,35,22,.5);
+}
+.pill.active:hover{filter:brightness(1.25)}
+
+/* --- SQUELETTES DE CHARGEMENT --- */
+.sk{
+  background:linear-gradient(90deg,var(--bgI) 25%,var(--bd) 50%,var(--bgI) 75%);
+  background-size:800px 100%;border-radius:var(--rS);
+  animation:shimmer 1.4s linear infinite;
+}
+.sk-line{height:11px;margin-bottom:9px}
+.sk-line.w40{width:40%}
+.sk-line.w60{width:60%}
+.sk-line.w80{width:80%}
+.sk-st{height:96px;border-radius:var(--r)}
+.sk-block{height:190px;border-radius:var(--r)}

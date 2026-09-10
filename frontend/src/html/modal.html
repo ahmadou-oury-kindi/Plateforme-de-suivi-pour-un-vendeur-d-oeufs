@@ -1,0 +1,15 @@
+<!-- =====================================================================
+     MODALE ET TOASTS — conteneurs partages par toute l'application
+     Le contenu est injecte par openModal() et toast() (js/ui/).
+     ===================================================================== -->
+<div id="modalOv" class="modal-ov" hidden onclick="event.target===this&&closeModal()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalT">
+    <div class="modal-hd">
+      <h3 id="modalT"></h3>
+      <button class="modal-x" onclick="closeModal()" aria-label="Fermer">&times;</button>
+    </div>
+    <div class="modal-bd" id="modalB"></div>
+  </div>
+</div>
+
+<div class="toast-box" id="toastBox" role="status" aria-live="polite"></div>

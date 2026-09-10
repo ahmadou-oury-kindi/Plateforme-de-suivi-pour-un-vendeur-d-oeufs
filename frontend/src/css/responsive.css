@@ -1,0 +1,111 @@
+/* =====================================================================
+   RESPONSIVE — charge en dernier pour surcharger tous les autres fichiers
+   sans avoir a jouer sur la specificite des selecteurs.
+
+   L'ordre va du plus large au plus etroit. Les marges interieures de la
+   zone principale sont deja fluides (clamp dans layout.css) : on ne les
+   redefinit ici que la ou la mise en page change vraiment de forme.
+   ===================================================================== */
+
+/* A partir du format bureau, une tuile d'indicateur cesse de s'etirer :
+   au-dela de ~340 px, elle n'affiche pas plus, elle ecarte seulement sa
+   valeur de son icone.
+
+   Flex et non grid ici : avec grid, le nombre de colonnes de auto-fit se
+   calcule sur la borne HAUTE de minmax(), si bien que plafonner la tuile
+   reduit la rangee — quatre tuiles se cassaient en 3 + 1. En flex, la
+   rangee se remplit sur la borne basse puis chaque tuile grandit jusqu'a
+   son plafond : quatre tiennent sur une ligne, trois se rangent a gauche
+   au lieu de traverser l'ecran. */
+@media(min-width:1100px){
+  .stats{display:flex;flex-wrap:wrap;align-items:stretch}
+  .stats>.st{flex:1 1 190px;max-width:340px}
+  .card .stats>.st,.panel .stats>.st{flex-basis:142px;max-width:260px}
+
+  /* Une barre de repartition longue de 900 px ne se compare pas mieux
+     qu'une barre de 600 : on borne la ligne. */
+  .cat-row{max-width:940px}
+}
+
+/* Tres grand ecran : on desserre le rythme plutot que d'etirer le texte. */
+@media(min-width:1700px){
+  .hero,.duo{gap:22px}
+  .stats{gap:18px}
+  .stats>.st{flex-basis:210px;max-width:380px}
+  .card{padding:26px 28px}
+}
+
+@media(max-width:1080px){
+  .hero{grid-template-columns:1fr}
+}
+
+@media(max-width:900px){
+  .duo{grid-template-columns:1fr}
+  .today-grid{grid-template-columns:repeat(2,1fr)}
+}
+
+@media(max-width:768px){
+  .hamburger{display:flex}
+  .side{transform:translateX(-100%);box-shadow:var(--shL)}
+  .side.open{transform:translateX(0)}
+  .side-overlay.open{display:block}
+  .main{margin-left:0;padding:66px 16px 44px}
+
+  h1{font-size:1.6rem}
+  .pg-hd{margin-bottom:20px;padding-bottom:14px}
+  .card{padding:18px;border-radius:var(--r)}
+  .panel,.today{padding:20px;border-radius:var(--r)}
+  .hero-v{font-size:2.15rem}
+  .hero-split{gap:12px}
+
+  .stats{grid-template-columns:1fr 1fr}
+  .form-row{grid-template-columns:1fr}
+
+  .pg-hd{flex-direction:column;align-items:stretch;gap:12px}
+  .pg-hd .pg-sub{align-self:flex-start}
+  .pg-hd .btn{width:100%}
+  .search-bar{max-width:none}
+  .mo-nav{display:flex;width:100%;justify-content:space-between}
+  .mo-nav span{min-width:0;flex:1}
+
+  .toast-box{top:auto;bottom:16px;left:16px;right:16px}
+  .toast{max-width:none}
+
+  .cat-row{gap:10px}
+  .cat-row .cat-name{min-width:86px;font-size:.83rem}
+  .cat-row .cat-amt{min-width:88px;font-size:.83rem}
+
+  /* La barre proportionnelle passe a la ligne : sur 390 px, un libelle,
+     une barre et un total cote a cote ne laissent plus rien de lisible. */
+  .type-row{flex-wrap:wrap;gap:8px 12px}
+  .type-row .t-name{min-width:0;flex:1}
+  .type-row .t-amt{min-width:0;text-align:right}
+  .type-row .prog{flex:1 0 100%;order:3}
+  .type-total{flex-direction:column;align-items:flex-start;gap:4px}
+
+  /* Plutot que de comprimer les colonnes jusqu'a couper les noms en deux,
+     le tableau garde une largeur lisible et .tbl-wrap le fait defiler. */
+  .tbl-wrap table{min-width:580px}
+  .card-flat th:first-child,.card-flat td:first-child{padding-left:18px}
+  .card-flat th:last-child,.card-flat td:last-child{padding-right:18px}
+
+  .modal-ft{margin:18px -20px -18px;padding:14px 20px 18px}
+  .modal-bd{padding:18px 20px}
+  .modal-hd{padding:18px 20px 14px}
+}
+
+@media(max-width:430px){
+  .st{padding:16px 18px 14px}
+  .st-v{font-size:1.55rem}
+  .hero-split{grid-template-columns:1fr;gap:14px}
+  .btn-group .btn{width:100%}
+  .login-card{padding:32px 22px 26px}
+}
+
+/* Une seule colonne de tuiles seulement sur les tres petits ecrans : sur
+   un telephone courant (375-430 px), deux tuiles par ligne tiennent sans
+   se serrer et evitent d'avoir a defiler cinq ecrans avant la liste. */
+@media(max-width:359px){
+  .stats{grid-template-columns:1fr}
+  .today-grid{grid-template-columns:1fr}
+}
