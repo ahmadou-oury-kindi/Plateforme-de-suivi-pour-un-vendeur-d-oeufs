@@ -2,7 +2,7 @@
 <!--
   Nenu Jolof — fichier genere automatiquement. NE PAS EDITER A LA MAIN.
   Sources : frontend/src/  ·  Regenerer : npm run build
-  Genere le 10/09/2026 18:43:09
+  Genere le 11/09/2026 21:26:57
 -->
 
 <html lang="fr">
@@ -572,10 +572,18 @@ svg{width:1.2em;height:1.2em;flex-shrink:0}
 }
 .hero-u{margin-top:8px;margin-bottom:auto;color:var(--tx2);font-size:.9rem}
 
-/* Trois valeurs secondaires sous la valeur principale */
+/* Quatre valeurs secondaires sous la valeur principale.
+   La largeur du panneau, pas celle de l'ecran, decide de la grille : a
+   cote du bloc Stock, sur un portable de 1366 px, le panneau ne fait que
+   ~550 px et quatre montants en ligne seraient tronques. On range alors
+   en 2 x 2, et on passe sur une ligne des que la place le permet. */
+.hero>.panel{container-type:inline-size}
 .hero-split{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:16px;
+  display:grid;grid-template-columns:repeat(2,1fr);gap:16px;
   margin-top:auto;padding-top:20px;border-top:1px solid var(--bd);
+}
+@container (min-width:580px){
+  .hero-split{grid-template-columns:repeat(4,1fr)}
 }
 .mini-v{
   font-family:'Outfit',sans-serif;font-weight:700;font-size:1.15rem;
@@ -3087,6 +3095,7 @@ function rDash() {
   const totalCost   = moSales.reduce(function (s, x) { return s + x.quantity * x.costPrice; }, 0);
   const totalMargin = totalRev - totalCost;
   const totalExp    = moExp.reduce(function (s, x) { return s + x.amount; }, 0);
+  const totalNet    = totalMargin - totalExp;
   const totalDebt   = totalOwed();
   const rate        = totalRev ? (totalMargin / totalRev) * 100 : 0;
 
@@ -3133,6 +3142,7 @@ function rDash() {
         <div class="hero-split">
           ${mini({ tone: totalMargin >= 0 ? 'up' : 'down', value: cfa(totalMargin), count: totalMargin, fmt: 'cfa', label: 'Marge brute' })}
           ${mini({ value: cfa(totalExp), count: totalExp, fmt: 'cfa', label: 'Dépenses du mois' })}
+          ${mini({ tone: totalNet >= 0 ? 'up' : 'down', value: cfa(totalNet), count: totalNet, fmt: 'cfa', label: 'Marge nette' })}
           ${mini({ tone: totalDebt > 0 ? 'down' : '', value: cfa(totalDebt), count: totalDebt, fmt: 'cfa', label: 'Dettes en cours' })}
         </div>
       </div>
@@ -4151,27 +4161,40 @@ function warnStockAfter(date) {
    Une vente = une quantite, un prix de vente et un prix de revient.
    La marge est toujours recalculee, jamais stockee : corriger une vente
    corrige aussitot tous les totaux.
+   Marge nette = marge brute - depenses. Elle se recalcule a chaque rendu,
+   donc suit en direct toute vente ou depense ajoutee, modifiee ou supprimee.
    ===================================================================== */
 function rMargins() {
   const mo = selMonth;
   const list = S.sales
     .filter(function (s) { return s.date.startsWith(mo); })
     .sort(function (a, b) { return b.date.localeCompare(a.date); });
+  const moExp = S.expenses.filter(function (e) { return e.date.startsWith(mo); });
 
   const totalRev  = list.reduce(function (s, x) { return s + x.quantity * x.sellingPrice; }, 0);
   const totalCost = list.reduce(function (s, x) { return s + x.quantity * x.costPrice; }, 0);
   const totalQty  = list.reduce(function (s, x) { return s + x.quantity; }, 0);
+  const totalExp  = moExp.reduce(function (s, x) { return s + x.amount; }, 0);
   const totalMargin = totalRev - totalCost;
-  const rate = totalRev ? (totalMargin / totalRev) * 100 : 0;
+  const totalNet    = totalMargin - totalExp;
+  const rate    = totalRev ? (totalMargin / totalRev) * 100 : 0;
+  const netRate = totalRev ? (totalNet / totalRev) * 100 : 0;
 
-  /* Regroupement par jour, pour le resume */
+  /* Regroupement par jour, pour le resume. Un jour avec des depenses mais
+     sans vente apparait aussi : sans lui, la colonne marge nette ne
+     retomberait pas sur le total du mois. */
   const byDate = {};
+  function day(d) {
+    if (!byDate[d]) byDate[d] = { rev: 0, cost: 0, qty: 0, exp: 0 };
+    return byDate[d];
+  }
   list.forEach(function (s) {
-    if (!byDate[s.date]) byDate[s.date] = { rev: 0, cost: 0, qty: 0 };
-    byDate[s.date].rev  += s.quantity * s.sellingPrice;
-    byDate[s.date].cost += s.quantity * s.costPrice;
-    byDate[s.date].qty  += s.quantity;
+    const v = day(s.date);
+    v.rev  += s.quantity * s.sellingPrice;
+    v.cost += s.quantity * s.costPrice;
+    v.qty  += s.quantity;
   });
+  moExp.forEach(function (e) { day(e.date).exp += e.amount; });
 
   document.getElementById('pg-margins').innerHTML = `
     <div class="pg-hd">
@@ -4187,22 +4210,26 @@ function rMargins() {
              label: `Marge brute${totalRev ? ` · ${rate.toFixed(0)} %` : ''}` })}
       ${st({ tone: 'gold',  icon: 'box',     value: num(totalQty), count: totalQty, label: 'Plateaux vendus' })}
       ${st({ tone: 'red',   icon: 'receipt', value: cfa(totalCost), count: totalCost, fmt: 'cfa', label: 'Coût total' })}
+      ${st({ tone: totalNet >= 0 ? 'green' : 'red', icon: 'trend', value: cfa(totalNet), count: totalNet, fmt: 'cfa',
+             label: `Marge nette${totalRev ? ` · ${netRate.toFixed(0)} %` : ''}` })}
     </div>
 
     ${Object.keys(byDate).length ? `<div class="card">
       <h3>Résumé par jour</h3>
       <div class="tbl-wrap"><table>
-        <thead><tr><th>Date</th><th>Plateaux</th><th>Chiffre d'aff.</th><th>Coût</th><th class="ta-r">Marge</th></tr></thead>
+        <thead><tr><th>Date</th><th>Plateaux</th><th>Chiffre d'aff.</th><th>Coût</th><th>Marge brute</th><th>Dépenses</th><th class="ta-r">Marge nette</th></tr></thead>
         <tbody>${Object.entries(byDate)
           .sort(function (a, b) { return b[0].localeCompare(a[0]); })
           .map(function (entry) {
-            const d = entry[0], v = entry[1], m = v.rev - v.cost;
+            const d = entry[0], v = entry[1], m = v.rev - v.cost, n = m - v.exp;
             return `<tr>
               <td class="nowrap">${fmtD(d)}</td>
               <td>${v.qty}</td>
               <td>${cfa(v.rev)}</td>
               <td>${cfa(v.cost)}</td>
-              <td class="ta-r" style="font-weight:600;color:${m >= 0 ? 'var(--green)' : 'var(--red)'}">${cfa(m)}</td>
+              <td style="font-weight:600;color:${m >= 0 ? 'var(--green)' : 'var(--red)'}">${cfa(m)}</td>
+              <td>${v.exp ? cfa(v.exp) : '—'}</td>
+              <td class="ta-r" style="font-weight:600;color:${n >= 0 ? 'var(--green)' : 'var(--red)'}">${cfa(n)}</td>
             </tr>`;
           }).join('')}</tbody>
       </table></div>

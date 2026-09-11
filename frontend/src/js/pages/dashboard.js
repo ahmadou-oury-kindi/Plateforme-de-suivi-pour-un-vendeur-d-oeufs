@@ -24,6 +24,7 @@ function rDash() {
   const totalCost   = moSales.reduce(function (s, x) { return s + x.quantity * x.costPrice; }, 0);
   const totalMargin = totalRev - totalCost;
   const totalExp    = moExp.reduce(function (s, x) { return s + x.amount; }, 0);
+  const totalNet    = totalMargin - totalExp;
   const totalDebt   = totalOwed();
   const rate        = totalRev ? (totalMargin / totalRev) * 100 : 0;
 
@@ -70,6 +71,7 @@ function rDash() {
         <div class="hero-split">
           ${mini({ tone: totalMargin >= 0 ? 'up' : 'down', value: cfa(totalMargin), count: totalMargin, fmt: 'cfa', label: 'Marge brute' })}
           ${mini({ value: cfa(totalExp), count: totalExp, fmt: 'cfa', label: 'Dépenses du mois' })}
+          ${mini({ tone: totalNet >= 0 ? 'up' : 'down', value: cfa(totalNet), count: totalNet, fmt: 'cfa', label: 'Marge nette' })}
           ${mini({ tone: totalDebt > 0 ? 'down' : '', value: cfa(totalDebt), count: totalDebt, fmt: 'cfa', label: 'Dettes en cours' })}
         </div>
       </div>

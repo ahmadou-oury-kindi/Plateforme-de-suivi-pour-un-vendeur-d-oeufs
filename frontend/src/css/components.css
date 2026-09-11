@@ -125,10 +125,18 @@
 }
 .hero-u{margin-top:8px;margin-bottom:auto;color:var(--tx2);font-size:.9rem}
 
-/* Trois valeurs secondaires sous la valeur principale */
+/* Quatre valeurs secondaires sous la valeur principale.
+   La largeur du panneau, pas celle de l'ecran, decide de la grille : a
+   cote du bloc Stock, sur un portable de 1366 px, le panneau ne fait que
+   ~550 px et quatre montants en ligne seraient tronques. On range alors
+   en 2 x 2, et on passe sur une ligne des que la place le permet. */
+.hero>.panel{container-type:inline-size}
 .hero-split{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:16px;
+  display:grid;grid-template-columns:repeat(2,1fr);gap:16px;
   margin-top:auto;padding-top:20px;border-top:1px solid var(--bd);
+}
+@container (min-width:580px){
+  .hero-split{grid-template-columns:repeat(4,1fr)}
 }
 .mini-v{
   font-family:'Outfit',sans-serif;font-weight:700;font-size:1.15rem;

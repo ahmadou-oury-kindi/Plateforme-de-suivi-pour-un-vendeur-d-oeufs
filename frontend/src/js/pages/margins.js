@@ -3,27 +3,40 @@
    Une vente = une quantite, un prix de vente et un prix de revient.
    La marge est toujours recalculee, jamais stockee : corriger une vente
    corrige aussitot tous les totaux.
+   Marge nette = marge brute - depenses. Elle se recalcule a chaque rendu,
+   donc suit en direct toute vente ou depense ajoutee, modifiee ou supprimee.
    ===================================================================== */
 function rMargins() {
   const mo = selMonth;
   const list = S.sales
     .filter(function (s) { return s.date.startsWith(mo); })
     .sort(function (a, b) { return b.date.localeCompare(a.date); });
+  const moExp = S.expenses.filter(function (e) { return e.date.startsWith(mo); });
 
   const totalRev  = list.reduce(function (s, x) { return s + x.quantity * x.sellingPrice; }, 0);
   const totalCost = list.reduce(function (s, x) { return s + x.quantity * x.costPrice; }, 0);
   const totalQty  = list.reduce(function (s, x) { return s + x.quantity; }, 0);
+  const totalExp  = moExp.reduce(function (s, x) { return s + x.amount; }, 0);
   const totalMargin = totalRev - totalCost;
-  const rate = totalRev ? (totalMargin / totalRev) * 100 : 0;
+  const totalNet    = totalMargin - totalExp;
+  const rate    = totalRev ? (totalMargin / totalRev) * 100 : 0;
+  const netRate = totalRev ? (totalNet / totalRev) * 100 : 0;
 
-  /* Regroupement par jour, pour le resume */
+  /* Regroupement par jour, pour le resume. Un jour avec des depenses mais
+     sans vente apparait aussi : sans lui, la colonne marge nette ne
+     retomberait pas sur le total du mois. */
   const byDate = {};
+  function day(d) {
+    if (!byDate[d]) byDate[d] = { rev: 0, cost: 0, qty: 0, exp: 0 };
+    return byDate[d];
+  }
   list.forEach(function (s) {
-    if (!byDate[s.date]) byDate[s.date] = { rev: 0, cost: 0, qty: 0 };
-    byDate[s.date].rev  += s.quantity * s.sellingPrice;
-    byDate[s.date].cost += s.quantity * s.costPrice;
-    byDate[s.date].qty  += s.quantity;
+    const v = day(s.date);
+    v.rev  += s.quantity * s.sellingPrice;
+    v.cost += s.quantity * s.costPrice;
+    v.qty  += s.quantity;
   });
+  moExp.forEach(function (e) { day(e.date).exp += e.amount; });
 
   document.getElementById('pg-margins').innerHTML = `
     <div class="pg-hd">
@@ -39,22 +52,26 @@ function rMargins() {
              label: `Marge brute${totalRev ? ` · ${rate.toFixed(0)} %` : ''}` })}
       ${st({ tone: 'gold',  icon: 'box',     value: num(totalQty), count: totalQty, label: 'Plateaux vendus' })}
       ${st({ tone: 'red',   icon: 'receipt', value: cfa(totalCost), count: totalCost, fmt: 'cfa', label: 'Coût total' })}
+      ${st({ tone: totalNet >= 0 ? 'green' : 'red', icon: 'trend', value: cfa(totalNet), count: totalNet, fmt: 'cfa',
+             label: `Marge nette${totalRev ? ` · ${netRate.toFixed(0)} %` : ''}` })}
     </div>
 
     ${Object.keys(byDate).length ? `<div class="card">
       <h3>Résumé par jour</h3>
       <div class="tbl-wrap"><table>
-        <thead><tr><th>Date</th><th>Plateaux</th><th>Chiffre d'aff.</th><th>Coût</th><th class="ta-r">Marge</th></tr></thead>
+        <thead><tr><th>Date</th><th>Plateaux</th><th>Chiffre d'aff.</th><th>Coût</th><th>Marge brute</th><th>Dépenses</th><th class="ta-r">Marge nette</th></tr></thead>
         <tbody>${Object.entries(byDate)
           .sort(function (a, b) { return b[0].localeCompare(a[0]); })
           .map(function (entry) {
-            const d = entry[0], v = entry[1], m = v.rev - v.cost;
+            const d = entry[0], v = entry[1], m = v.rev - v.cost, n = m - v.exp;
             return `<tr>
               <td class="nowrap">${fmtD(d)}</td>
               <td>${v.qty}</td>
               <td>${cfa(v.rev)}</td>
               <td>${cfa(v.cost)}</td>
-              <td class="ta-r" style="font-weight:600;color:${m >= 0 ? 'var(--green)' : 'var(--red)'}">${cfa(m)}</td>
+              <td style="font-weight:600;color:${m >= 0 ? 'var(--green)' : 'var(--red)'}">${cfa(m)}</td>
+              <td>${v.exp ? cfa(v.exp) : '—'}</td>
+              <td class="ta-r" style="font-weight:600;color:${n >= 0 ? 'var(--green)' : 'var(--red)'}">${cfa(n)}</td>
             </tr>`;
           }).join('')}</tbody>
       </table></div>
