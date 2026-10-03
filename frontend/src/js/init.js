@@ -27,6 +27,7 @@ applyTheme();
 setSync('off', 'Hors ligne');
 
 S = load();
+snapSaved();          /* reference de depart pour l'horodatage des changements */
 selMonth = curMo();
 
 initDL();
