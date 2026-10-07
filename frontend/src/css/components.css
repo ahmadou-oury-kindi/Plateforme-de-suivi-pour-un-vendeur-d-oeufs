@@ -161,8 +161,15 @@
 }
 
 /* Liste des dettes en deux colonnes : avec une vingtaine de creances,
-   une carte pleine largeur par dette obligeait a defiler sans fin. */
-.debt-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:16px;align-items:start}
+   une carte pleine largeur par dette obligeait a defiler sans fin.
+
+   min(430px,100%) et non 430px : auto-fill garde la borne basse de
+   minmax() meme quand le conteneur est plus etroit qu'elle. Sur un
+   telephone, la piste restait donc large de 430 px dans une colonne de
+   344, et toute la page debordait vers la droite — montants et badges
+   coupes au bord de l'ecran. Avec min(), la piste retombe sur la largeur
+   disponible des qu'elle manque. */
+.debt-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(430px,100%),1fr));gap:16px;align-items:start}
 .debt-list .card{margin-bottom:0}
 
 /* --- CARTES STATISTIQUES --- */
@@ -176,6 +183,13 @@
   background:var(--gS2);border:1px solid var(--bd);border-radius:var(--r);
   padding:18px 20px 16px;box-shadow:var(--sh),var(--shIn);
   transition:transform var(--tr),box-shadow var(--tr),border-color var(--tr);
+  /* Sans min-width:0, la largeur minimale automatique d'un element de
+     grille est sa largeur min-content. Comme .st-v est en nowrap et que
+     cfa() separe les milliers par des espaces insecables, « 13 854 700
+     FCFA » forme un bloc indivisible : les pistes se calaient sur lui et
+     la grille debordait de son conteneur au lieu de le laisser couper.
+     Avec 0, la piste se retracte et l'ellipse de .st-v joue son role. */
+  min-width:0;
 }
 .st::after{
   content:"";position:absolute;left:14px;right:14px;top:0;height:2px;

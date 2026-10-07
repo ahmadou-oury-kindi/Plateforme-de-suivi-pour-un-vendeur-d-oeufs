@@ -2,7 +2,7 @@
 <!--
   Nenu Jolof — fichier genere automatiquement. NE PAS EDITER A LA MAIN.
   Sources : frontend/src/  ·  Regenerer : npm run build
-  Genere le 07/10/2026 16:05:52
+  Genere le 07/10/2026 16:28:05
 -->
 
 <html lang="fr">
@@ -608,8 +608,15 @@ svg{width:1.2em;height:1.2em;flex-shrink:0}
 }
 
 /* Liste des dettes en deux colonnes : avec une vingtaine de creances,
-   une carte pleine largeur par dette obligeait a defiler sans fin. */
-.debt-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:16px;align-items:start}
+   une carte pleine largeur par dette obligeait a defiler sans fin.
+
+   min(430px,100%) et non 430px : auto-fill garde la borne basse de
+   minmax() meme quand le conteneur est plus etroit qu'elle. Sur un
+   telephone, la piste restait donc large de 430 px dans une colonne de
+   344, et toute la page debordait vers la droite — montants et badges
+   coupes au bord de l'ecran. Avec min(), la piste retombe sur la largeur
+   disponible des qu'elle manque. */
+.debt-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(430px,100%),1fr));gap:16px;align-items:start}
 .debt-list .card{margin-bottom:0}
 
 /* --- CARTES STATISTIQUES --- */
@@ -623,6 +630,13 @@ svg{width:1.2em;height:1.2em;flex-shrink:0}
   background:var(--gS2);border:1px solid var(--bd);border-radius:var(--r);
   padding:18px 20px 16px;box-shadow:var(--sh),var(--shIn);
   transition:transform var(--tr),box-shadow var(--tr),border-color var(--tr);
+  /* Sans min-width:0, la largeur minimale automatique d'un element de
+     grille est sa largeur min-content. Comme .st-v est en nowrap et que
+     cfa() separe les milliers par des espaces insecables, « 13 854 700
+     FCFA » forme un bloc indivisible : les pistes se calaient sur lui et
+     la grille debordait de son conteneur au lieu de le laisser couper.
+     Avec 0, la piste se retracte et l'ellipse de .st-v joue son role. */
+  min-width:0;
 }
 .st::after{
   content:"";position:absolute;left:14px;right:14px;top:0;height:2px;
@@ -1252,6 +1266,27 @@ tbody tr:last-child td{border-bottom:none}
   .mo-nav{display:flex;width:100%;justify-content:space-between}
   .mo-nav .mo-pick{min-width:0;flex:1}
 
+  /* --- Cibles tactiles ---
+     Un doigt n'est pas un curseur : sous 40 px de haut, une cible se
+     rate, et les icones d'edition et de suppression sont cote a cote.
+     On n'elargit qu'ici — a la souris, les tailles d'origine restent
+     plus denses, donc plus lisibles. */
+  .btn{min-height:42px}
+  .btn-sm{min-height:38px}
+  .btn-icon{width:42px;height:42px}
+  .mo-nav .btn-g{width:42px;height:42px;min-height:42px}
+  .modal-x{width:42px;height:42px;font-size:1.5rem}
+  .pill{min-height:38px}
+
+  /* --- Zoom involontaire sur iOS ---
+     Safari agrandit la page des qu'un champ de moins de 16 px prend le
+     focus, et ne la reduit pas en sortant : la saisie d'une vente laisse
+     l'ecran decale. Les champs passent donc a 16 px exactement — en
+     dessous le navigateur zoome, au-dessus rien n'est gagne. */
+  .form-g input,.form-g select,.form-g textarea,
+  .search-bar input,
+  #loginScreen input{font-size:16px}
+
   .toast-box{top:auto;bottom:16px;left:16px;right:16px}
   .toast{max-width:none}
 
@@ -1278,20 +1313,26 @@ tbody tr:last-child td{border-bottom:none}
   .modal-hd{padding:18px 20px 14px}
 }
 
+/* Format telephone.
+
+   Les tuiles passent sur une seule colonne. Le reglage precedent — deux
+   par ligne jusqu'a 359 px seulement — partait de l'idee qu'elles
+   tiendraient sans se serrer et eviteraient de defiler. Les montants
+   reels l'ont dementi : sur 390 px, une tuile sur deux colonnes offre
+   134 px, dont 40 reserves a l'icone, soit 94 px de texte. « 13 854 700
+   FCFA » en demande pres de 240. La valeur, qui est la raison d'etre de
+   la tuile, se retrouvait coupee par l'ellipse.
+
+   Sur une colonne il reste 278 px de texte : le montant tient en entier.
+   On defile un peu plus, on lit le chiffre. */
 @media(max-width:430px){
   .st{padding:16px 18px 14px}
   .st-v{font-size:1.55rem}
+  .stats{grid-template-columns:1fr}
+  .today-grid{grid-template-columns:1fr}
   .hero-split{grid-template-columns:1fr;gap:14px}
   .btn-group .btn{width:100%}
   .login-card{padding:32px 22px 26px}
-}
-
-/* Une seule colonne de tuiles seulement sur les tres petits ecrans : sur
-   un telephone courant (375-430 px), deux tuiles par ligne tiennent sans
-   se serrer et evitent d'avoir a defiler cinq ecrans avant la liste. */
-@media(max-width:359px){
-  .stats{grid-template-columns:1fr}
-  .today-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
