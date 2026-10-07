@@ -50,14 +50,27 @@ const TOMB_DAYS = 120;
 
 /* --- Outils ---------------------------------------------------------- */
 
-/* JSON a cles triees : deux enregistrements identiques au champ _up pres
-   produisent la meme chaine, quel que soit l'ordre des proprietes. */
-function canon(v) {
+/* JSON a cles triees : deux valeurs equivalentes produisent la meme
+   chaine, quel que soit l'ordre des proprietes.
+   sansUp retire les horodatages, ce qui donne les deux comparaisons dont
+   on a besoin, et qui ne sont pas interchangeables :
+     · canon()    compare le CONTENU metier — c'est ce qui permet de voir
+                  qu'un enregistrement a vraiment change ;
+     · canonAll() compare l'etat COMPLET, horodatages inclus — c'est ce
+                  qui permet de voir qu'un appareil doit adopter les
+                  horodatages venus du cloud. Les confondre ferait passer
+                  une difference purement temporelle pour une egalite. */
+function stableStr(v, sansUp) {
   if (v === null || typeof v !== 'object') return JSON.stringify(v) || 'null';
-  if (Array.isArray(v)) return '[' + v.map(canon).join(',') + ']';
-  return '{' + Object.keys(v).sort().filter(function (k) { return k !== '_up'; })
-    .map(function (k) { return JSON.stringify(k) + ':' + canon(v[k]); }).join(',') + '}';
+  if (Array.isArray(v)) return '[' + v.map(function (x) { return stableStr(x, sansUp); }).join(',') + ']';
+  return '{' + Object.keys(v).sort()
+    .filter(function (k) { return !(sansUp && k === '_up'); })
+    .map(function (k) { return JSON.stringify(k) + ':' + stableStr(v[k], sansUp); })
+    .join(',') + '}';
 }
+
+function canon(v)    { return stableStr(v, true); }
+function canonAll(v) { return stableStr(v, false); }
 
 /* Vrai si a et b portent la meme donnee metier (le _up est ignore) */
 function sameRecord(a, b) {

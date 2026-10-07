@@ -124,8 +124,12 @@ async function cloudSyncOnce(quiet) {
        etat cloud qui ignore simplement les champs par defaut passerait
        pour different, et on reecrirait la ligne a chaque passage. */
     const cloudNorm    = Object.assign(defaults(), withSyncFields(read.data || {}));
-    const localChanged = canon(merged) !== canon(S);
-    const cloudStale   = canon(merged) !== canon(cloudNorm);
+    /* canonAll et non canon : une difference portant seulement sur les
+       horodatages doit etre vue, sinon un appareil n'adopte jamais les
+       « _up » poses ailleurs et les conflits futurs se tranchent a
+       l'aveugle. */
+    const localChanged = canonAll(merged) !== canonAll(S);
+    const cloudStale   = canonAll(merged) !== canonAll(cloudNorm);
 
     /* On adopte le resultat de la fusion en local dans tous les cas :
        c'est lui la verite partagee. */
