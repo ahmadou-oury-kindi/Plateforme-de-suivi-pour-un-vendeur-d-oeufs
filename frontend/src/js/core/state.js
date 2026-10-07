@@ -30,7 +30,11 @@ function defaults() {
     expenses: [],
     receptions: [],
     daily: [],
-    sales: []
+    sales: [],
+    /* Champs de synchro (voir merge.js) : horodatage des scalaires et
+       pierres tombales des enregistrements supprimes. */
+    _stockUp: null,
+    _del: emptyTombs()
   };
 }
 
@@ -40,29 +44,45 @@ function defaults() {
 function load() {
   try {
     const d = localStorage.getItem(DB);
-    return d ? JSON.parse(d) : defaults();
+    return d ? Object.assign(defaults(), JSON.parse(d)) : defaults();
   } catch (e) {
     return defaults();
   }
 }
 
+/* Copie de l'etat tel qu'il a ete sauvegarde la derniere fois. C'est la
+   reference qui permet a stampChanges() de deduire ce qui a change sans
+   que les formulaires aient a le declarer. */
+let lastSaved = null;
+
+function snapSaved() {
+  lastSaved = JSON.parse(JSON.stringify(S));
+}
+
 /* Sauvegarde : cache local d'abord (instantane), cloud ensuite (asynchrone).
-   Tout le code metier passe par save() — jamais par localStorage direct. */
+   Tout le code metier passe par save() — jamais par localStorage direct.
+   L'horodatage des enregistrements touches est pose ici, une fois pour
+   toutes : c'est ce qui rend la fusion multi-appareils possible. */
 function save() {
-  try {
-    localStorage.setItem(DB, JSON.stringify(S));
-  } catch (e) {
-    toast('Erreur de sauvegarde locale', 'err');
-  }
+  stampChanges(lastSaved);
+  writeLocal();
+  snapSaved();
   cloudPush();
 }
 
 /* Ecrit le cache local sans declencher de synchro cloud. Utilise quand la
    donnee vient justement d'etre lue depuis le cloud. */
 function saveLocalOnly() {
+  writeLocal();
+  snapSaved();
+}
+
+function writeLocal() {
   try {
     localStorage.setItem(DB, JSON.stringify(S));
-  } catch (e) { /* quota plein : le cloud reste la source de verite */ }
+  } catch (e) {
+    toast('Erreur de sauvegarde locale', 'err');
+  }
 }
 
 /* Vrai si l'etat courant contient au moins une donnee saisie */

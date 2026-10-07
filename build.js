@@ -40,6 +40,7 @@ const JS_FILES = [
   /* Noyau : constantes, etat, reseau, authentification */
   'js/core/constants.js',
   'js/core/state.js',
+  'js/core/merge.js',
   'js/core/utils.js',
   'js/core/supabase.js',
   'js/core/auth.js',

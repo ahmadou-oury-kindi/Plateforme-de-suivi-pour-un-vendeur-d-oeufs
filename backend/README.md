@@ -43,6 +43,38 @@ Ce format ne doit pas changer sans migration : les donnees de production
 (clients et dettes reels) sont deja stockees ainsi, a la fois dans Supabase
 et dans le navigateur du gerant.
 
+### Champs de synchronisation
+
+A cote des donnees metier, `data` porte trois champs techniques qui
+permettent de fusionner les etats de plusieurs appareils plutot que de les
+ecraser :
+
+| Champ | Ou | Role |
+|---|---|---|
+| `_up` | sur chaque enregistrement | date ISO de sa derniere modification ; en cas de conflit, le plus recent gagne |
+| `_del` | a la racine | pierres tombales : `{ collection: { cle: dateISO } }`, pour qu'un appareil en retard ne ressuscite pas ce qui a ete supprime ailleurs |
+| `_stockUp` | a la racine | horodatage de `initialStock` et `initialStockDate`, qui n'ont pas d'enregistrement a eux |
+
+Les enregistrements sont identifies par `id`, sauf `daily` qui l'est par
+`date`. Les pierres tombales de plus de 120 jours sont oubliees : un
+appareil qui ne s'est pas synchronise depuis plus longtemps doit etre
+reinitialise depuis le cloud (bouton « Restaurer depuis le cloud »).
+
+### Protocole d'ecriture
+
+Toute ecriture suit le meme chemin : **lire, fusionner, reecrire**. La
+reecriture est gardee par `updated_at` —
+
+```sql
+update app_state set data = ..., updated_at = now()
+ where id = 1 and updated_at = <valeur lue>
+```
+
+— et si aucune ligne n'est touchee, c'est qu'un autre appareil a ecrit
+entre-temps : le frontend relit et refusionne (3 tentatives). Une ecriture
+ne peut donc pas en effacer une autre en silence. Voir
+`frontend/src/js/core/merge.js` et `frontend/src/js/core/supabase.js`.
+
 Le stock, lui, n'est jamais stocke : il se calcule a partir de
 `initialStock`, de `receptions` et de `sales`. Une entree de `daily` est un
 comptage physique — elle ne decrit pas une journee, elle recale le compteur
@@ -56,8 +88,10 @@ l'ordre :
 
 1. `supabase/01_schema.sql` — cree la table et la ligne `id = 1`
 2. `supabase/02_policies.sql` — verrouille l'acces (RLS)
+3. `supabase/03_backup.sql` — archive les 50 versions precedentes de
+   l'etat, avant chaque ecriture qui le modifie
 
-Les deux scripts sont rejouables : les relancer ne detruit aucune donnee.
+Les trois scripts sont rejouables : les relancer ne detruit aucune donnee.
 
 ## Acces et securite
 

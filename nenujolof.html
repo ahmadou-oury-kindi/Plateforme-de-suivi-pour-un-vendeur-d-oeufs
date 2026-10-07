@@ -2,7 +2,7 @@
 <!--
   Nenu Jolof — fichier genere automatiquement. NE PAS EDITER A LA MAIN.
   Sources : frontend/src/  ·  Regenerer : npm run build
-  Genere le 11/09/2026 21:26:57
+  Genere le 03/10/2026 17:38:46
 -->
 
 <html lang="fr">
@@ -1435,7 +1435,11 @@ function defaults() {
     expenses: [],
     receptions: [],
     daily: [],
-    sales: []
+    sales: [],
+    /* Champs de synchro (voir merge.js) : horodatage des scalaires et
+       pierres tombales des enregistrements supprimes. */
+    _stockUp: null,
+    _del: emptyTombs()
   };
 }
 
@@ -1445,29 +1449,45 @@ function defaults() {
 function load() {
   try {
     const d = localStorage.getItem(DB);
-    return d ? JSON.parse(d) : defaults();
+    return d ? Object.assign(defaults(), JSON.parse(d)) : defaults();
   } catch (e) {
     return defaults();
   }
 }
 
+/* Copie de l'etat tel qu'il a ete sauvegarde la derniere fois. C'est la
+   reference qui permet a stampChanges() de deduire ce qui a change sans
+   que les formulaires aient a le declarer. */
+let lastSaved = null;
+
+function snapSaved() {
+  lastSaved = JSON.parse(JSON.stringify(S));
+}
+
 /* Sauvegarde : cache local d'abord (instantane), cloud ensuite (asynchrone).
-   Tout le code metier passe par save() — jamais par localStorage direct. */
+   Tout le code metier passe par save() — jamais par localStorage direct.
+   L'horodatage des enregistrements touches est pose ici, une fois pour
+   toutes : c'est ce qui rend la fusion multi-appareils possible. */
 function save() {
-  try {
-    localStorage.setItem(DB, JSON.stringify(S));
-  } catch (e) {
-    toast('Erreur de sauvegarde locale', 'err');
-  }
+  stampChanges(lastSaved);
+  writeLocal();
+  snapSaved();
   cloudPush();
 }
 
 /* Ecrit le cache local sans declencher de synchro cloud. Utilise quand la
    donnee vient justement d'etre lue depuis le cloud. */
 function saveLocalOnly() {
+  writeLocal();
+  snapSaved();
+}
+
+function writeLocal() {
   try {
     localStorage.setItem(DB, JSON.stringify(S));
-  } catch (e) { /* quota plein : le cloud reste la source de verite */ }
+  } catch (e) {
+    toast('Erreur de sauvegarde locale', 'err');
+  }
 }
 
 /* Vrai si l'etat courant contient au moins une donnee saisie */
@@ -1482,6 +1502,234 @@ function hasData(o) {
     (d.sales      || []).length ||
     (d.daily      || []).length
   );
+}
+
+/* ===== js/core/merge.js ===== */
+/* =====================================================================
+   FUSION — reconcilie deux etats venant de deux appareils
+
+   Pourquoi ce fichier existe
+   --------------------------
+   Jusqu'ici la synchro ecrivait l'etat complet d'un bloc : le dernier
+   appareil connecte ecrasait le travail des autres, et un appareil qui
+   avait deja des donnees locales ne relisait jamais le cloud. Resultat :
+   chaque telephone vivait sur sa propre copie, et une saisie pouvait
+   disparaitre du cloud sans aucun signe.
+
+   Le principe retenu
+   ------------------
+   On continue de stocker l'etat dans une seule ligne JSON (pas de
+   migration de schema), mais on fusionne ENREGISTREMENT PAR
+   ENREGISTREMENT :
+
+     · chaque enregistrement porte « _up », la date ISO de sa derniere
+       modification ; en cas de conflit, le plus recent gagne ;
+     · chaque suppression laisse une « pierre tombale » dans S._del, pour
+       qu'un appareil en retard ne fasse pas reapparaitre ce qui a ete
+       supprime ailleurs ;
+     · les champs scalaires (stock initial) sont horodates ensemble par
+       « _stockUp ».
+
+   Les pages metier n'ont rien a faire : stampChanges() detecte seule les
+   creations, modifications et suppressions en comparant l'etat avant et
+   apres, au moment du save(). Aucun appel a ajouter dans les
+   formulaires.
+   ===================================================================== */
+
+/* Collections synchronisees, avec le champ qui identifie un
+   enregistrement. « daily » n'a pas d'id : une ligne par date. */
+const SYNC_COLLS = {
+  clients:    'id',
+  debts:      'id',
+  expenses:   'id',
+  receptions: 'id',
+  sales:      'id',
+  daily:      'date'
+};
+
+/* Champs non collectionnes, horodates en bloc par _stockUp */
+const SYNC_SCALARS = ['initialStock', 'initialStockDate'];
+
+/* Duree de conservation des pierres tombales, en jours. Un appareil qui
+   se synchronise au moins une fois dans cette fenetre voit passer la
+   suppression ; au dela, on oublie, sinon la liste grossit sans fin. */
+const TOMB_DAYS = 120;
+
+/* --- Outils ---------------------------------------------------------- */
+
+/* JSON a cles triees : deux enregistrements identiques au champ _up pres
+   produisent la meme chaine, quel que soit l'ordre des proprietes. */
+function canon(v) {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v) || 'null';
+  if (Array.isArray(v)) return '[' + v.map(canon).join(',') + ']';
+  return '{' + Object.keys(v).sort().filter(function (k) { return k !== '_up'; })
+    .map(function (k) { return JSON.stringify(k) + ':' + canon(v[k]); }).join(',') + '}';
+}
+
+/* Vrai si a et b portent la meme donnee metier (le _up est ignore) */
+function sameRecord(a, b) {
+  return canon(a) === canon(b);
+}
+
+/* Les dates ISO se comparent comme des chaines. Une date absente est la
+   plus ancienne possible. */
+function newerStamp(a, b) {
+  return (a || '') >= (b || '') ? a : b;
+}
+
+function emptyTombs() {
+  const t = {};
+  Object.keys(SYNC_COLLS).forEach(function (c) { t[c] = {}; });
+  return t;
+}
+
+/* Complete un etat lu d'une source quelconque (cloud, import, cache
+   ancien) pour qu'il porte toujours les champs de synchro attendus. */
+function withSyncFields(o) {
+  const d = o || {};
+  if (!d._del) d._del = emptyTombs();
+  Object.keys(SYNC_COLLS).forEach(function (c) {
+    if (!d._del[c]) d._del[c] = {};
+    if (!Array.isArray(d[c])) d[c] = [];
+  });
+  return d;
+}
+
+/* --- Horodatage des changements locaux ------------------------------- */
+
+/* Compare l'etat precedemment sauvegarde (prev) a l'etat courant (S) et
+   en deduit ce qui a change :
+     · enregistrement nouveau ou modifie  -> _up = maintenant
+     · enregistrement disparu             -> pierre tombale
+     · enregistrement revenu              -> pierre tombale levee
+   Appelee par save(), donc declenchee par toute saisie, sans que les
+   pages aient a le savoir. */
+function stampChanges(prev) {
+  const now = new Date().toISOString();
+  withSyncFields(S);
+  const before = withSyncFields(prev ? JSON.parse(JSON.stringify(prev)) : null);
+
+  Object.keys(SYNC_COLLS).forEach(function (coll) {
+    const key   = SYNC_COLLS[coll];
+    const olds  = {};
+    (before[coll] || []).forEach(function (r) { if (r[key] != null) olds[r[key]] = r; });
+
+    const liveKeys = {};
+    S[coll].forEach(function (r) {
+      const k = r[key];
+      if (k == null) return;             /* sans cle : hors synchro */
+      liveKeys[k] = true;
+      const old = olds[k];
+      if (!old || !sameRecord(old, r)) r._up = now;
+      else if (!r._up && old._up) r._up = old._up;
+      delete S._del[coll][k];            /* re-cree : la suppression ne vaut plus */
+    });
+
+    Object.keys(olds).forEach(function (k) {
+      if (!liveKeys[k]) S._del[coll][k] = now;
+    });
+  });
+
+  let scalarChanged = false;
+  SYNC_SCALARS.forEach(function (f) {
+    if (canon(before[f]) !== canon(S[f])) scalarChanged = true;
+  });
+  if (scalarChanged) S._stockUp = now;
+
+  pruneTombs(S._del);
+}
+
+/* Oublie les suppressions trop anciennes (voir TOMB_DAYS) */
+function pruneTombs(del) {
+  const limit = new Date(Date.now() - TOMB_DAYS * 86400000).toISOString();
+  Object.keys(del || {}).forEach(function (coll) {
+    Object.keys(del[coll]).forEach(function (k) {
+      if (del[coll][k] < limit) delete del[coll][k];
+    });
+  });
+}
+
+/* --- Fusion ---------------------------------------------------------- */
+
+/* Choisit entre deux versions du meme enregistrement.
+   Regles, dans l'ordre :
+     1. les deux horodates  -> le plus recent ;
+     2. un seul horodate    -> celui-la (l'autre vient d'avant la mise en
+        place de la synchro par enregistrement) ;
+     3. aucun des deux      -> le local, pour ne pas qu'un cloud plus
+        pauvre efface une saisie faite sur l'appareil. */
+function pickRecord(local, cloud) {
+  if (local._up && cloud._up) return local._up >= cloud._up ? local : cloud;
+  if (local._up) return local;
+  if (cloud._up) return cloud;
+  return local;
+}
+
+/* Vrai si la cle a ete supprimee apres la derniere modification connue de
+   l'enregistrement. Un enregistrement modifie APRES la suppression
+   gagne : c'est une re-creation volontaire. */
+function isTombed(tombs, key, up) {
+  const t = tombs && tombs[key];
+  if (!t) return false;
+  return !up || t >= up;
+}
+
+/* Fusionne l'etat local et l'etat du cloud. Symetrique a une exception
+   pres : en cas d'egalite parfaite, le local est prefere. L'ordre des
+   enregistrements suit le local, les nouveautes du cloud a la suite. */
+function mergeStates(localRaw, cloudRaw) {
+  const local = withSyncFields(JSON.parse(JSON.stringify(localRaw || {})));
+  const cloud = withSyncFields(JSON.parse(JSON.stringify(cloudRaw || {})));
+  const out   = Object.assign(defaults(), { _del: emptyTombs() });
+
+  /* Pierres tombales : union, la plus recente l'emporte */
+  Object.keys(SYNC_COLLS).forEach(function (coll) {
+    const t = {};
+    [local._del[coll], cloud._del[coll]].forEach(function (side) {
+      Object.keys(side || {}).forEach(function (k) { t[k] = newerStamp(t[k], side[k]); });
+    });
+    out._del[coll] = t;
+  });
+
+  Object.keys(SYNC_COLLS).forEach(function (coll) {
+    const key    = SYNC_COLLS[coll];
+    const order  = [];        /* cles, dans l'ordre local puis cloud */
+    const chosen = {};
+
+    local[coll].forEach(function (r) {
+      const k = r[key];
+      if (k == null) return;
+      if (!(k in chosen)) order.push(k);
+      chosen[k] = r;
+    });
+    cloud[coll].forEach(function (r) {
+      const k = r[key];
+      if (k == null) return;
+      if (!(k in chosen)) { order.push(k); chosen[k] = r; return; }
+      chosen[k] = pickRecord(chosen[k], r);
+    });
+
+    out[coll] = order
+      .filter(function (k) { return !isTombed(out._del[coll], k, chosen[k]._up); })
+      .map(function (k) { return chosen[k]; });
+  });
+
+  /* Scalaires : le bloc le plus recemment horodate gagne. Sans
+     horodatage de part et d'autre, une valeur renseignee bat un vide. */
+  let src = local;
+  if (local._stockUp && cloud._stockUp)   src = cloud._stockUp > local._stockUp ? cloud : local;
+  else if (cloud._stockUp)                src = cloud;
+  else if (!local._stockUp && local.initialStock == null && cloud.initialStock != null) src = cloud;
+  SYNC_SCALARS.forEach(function (f) { out[f] = src[f]; });
+  out._stockUp = newerStamp(local._stockUp, cloud._stockUp);
+
+  return out;
+}
+
+/* Resume lisible d'un ecart entre deux etats — sert aux messages */
+function countRecords(o) {
+  const d = withSyncFields(o ? JSON.parse(JSON.stringify(o)) : null);
+  return Object.keys(SYNC_COLLS).reduce(function (n, c) { return n + d[c].length; }, 0);
 }
 
 /* ===== js/core/utils.js ===== */
@@ -1566,13 +1814,37 @@ function numVal(id) {
 /* ===== js/core/supabase.js ===== */
 /* =====================================================================
    SYNCHRONISATION CLOUD — Supabase
-   Modele : le localStorage est le cache de lecture rapide, Supabase la
-   sauvegarde de reference. Chaque save() ecrit les deux.
+
+   Modele
+   ------
+   Le localStorage est le cache de lecture rapide ; Supabase est la
+   sauvegarde de reference, partagee entre tous les appareils du gerant.
+
+   Regle unique, qui remplace l'ancienne asymetrie local/cloud : on ne
+   remplace JAMAIS un etat par l'autre, on les FUSIONNE enregistrement
+   par enregistrement (voir merge.js). Chaque ecriture suit donc toujours
+   le meme chemin :
+
+       lire le cloud  ->  fusionner avec le local  ->  reecrire
+
+   L'ecriture est gardee par un controle de version : on ne reecrit la
+   ligne que si elle n'a pas bouge depuis la lecture. Si un autre
+   appareil est passe entre les deux, on recommence avec la version
+   fraiche. Rien ne peut donc etre ecrase en silence.
    ===================================================================== */
 
 let sb = null;          /* client Supabase */
 let cloudOK = false;    /* derniere operation reseau reussie ? */
 let lastSync = null;    /* Date de la derniere ecriture reussie */
+let cloudSeen = null;   /* updated_at de la derniere version lue */
+
+/* Les saisies peuvent s'enchainer plus vite que le reseau : on serialise
+   les synchros pour qu'elles ne se marchent pas dessus. */
+let syncChain = Promise.resolve();
+
+/* Rafraichissement automatique : periode, en millisecondes */
+const SYNC_EVERY = 60000;
+let syncTimer = null;
 
 /* Cree le client. Appele avant la connexion, car l'ecran de login s'en sert. */
 function initSb() {
@@ -1586,93 +1858,209 @@ function initSb() {
   return sb;
 }
 
-/* Envoie l'etat complet vers le cloud. Une seule ligne, id = 1. */
-async function cloudPush() {
-  if (!sb) { setSync('off', 'Hors ligne'); return false; }
-  setSync('busy', 'Synchro...');
-  try {
-    const { error } = await sb.from('app_state').upsert({
-      id: 1,
-      data: S,
-      updated_at: new Date().toISOString()
-    });
-    cloudOK = !error;
-    if (error) {
-      console.warn('Echec de la synchro vers le cloud', error);
-      setSync('err', 'Non sauvegardé');
-      return false;
-    }
-    lastSync = new Date();
-    setSync('ok', 'Sauvegardé');
-    return true;
-  } catch (e) {
-    cloudOK = false;
-    console.warn('Echec de la synchro vers le cloud', e);
-    setSync('err', 'Non sauvegardé');
-    return false;
-  }
+/* Enchaine les synchros au lieu de les laisser se chevaucher */
+function queueSync(fn) {
+  syncChain = syncChain.then(fn, fn);
+  return syncChain;
 }
 
-/* Lit l'etat stocke dans le cloud. Renvoie null si rien n'est lisible. */
-async function cloudPull() {
-  if (!sb) return null;
-  setSync('busy', 'Lecture...');
+/* --- Lecture --------------------------------------------------------- */
+
+/* Lit l'etat stocke dans le cloud.
+   Renvoie { data, updatedAt } ; data vaut null si la ligne n'existe pas
+   encore. Renvoie null — et seulement dans ce cas — si le reseau ou les
+   droits ont refuse la lecture : l'appelant ne doit alors rien ecrire. */
+async function cloudRead() {
+  if (!sb) { setSync('off', 'Hors ligne'); return null; }
   try {
-    const { data, error } = await sb.from('app_state').select('data').eq('id', 1).single();
-    cloudOK = !error;
+    const { data, error } = await sb.from('app_state')
+      .select('data, updated_at').eq('id', 1).maybeSingle();
     if (error) {
+      cloudOK = false;
       console.warn('Echec de la lecture du cloud', error);
       setSync('err', 'Cloud injoignable');
       return null;
     }
-    setSync('ok', 'Sauvegardé');
-    return data && data.data ? data.data : null;
+    cloudOK = true;
+    cloudSeen = data ? data.updated_at : null;
+    return { data: data ? data.data : null, updatedAt: cloudSeen };
   } catch (e) {
     cloudOK = false;
+    console.warn('Echec de la lecture du cloud', e);
     setSync('err', 'Cloud injoignable');
     return null;
   }
 }
 
-/* Bouton « Forcer la synchro » de la page Parametres */
+/* --- Ecriture gardee ------------------------------------------------- */
+
+/* Reecrit la ligne seulement si son updated_at est toujours celui qu'on a
+   lu. Renvoie true si l'ecriture a bien eu lieu, false si la ligne a
+   bouge entre-temps (il faut relire et refusionner), et leve en cas
+   d'erreur reseau ou de droits. */
+async function cloudWrite(state, seen) {
+  const stamp = new Date().toISOString();
+  const row = { id: 1, data: state, updated_at: stamp };
+
+  /* Ligne absente : premiere ecriture, rien a garder. */
+  if (seen == null) {
+    const { error } = await sb.from('app_state').upsert(row);
+    if (error) throw error;
+    cloudSeen = stamp;
+    return true;
+  }
+
+  const { data, error } = await sb.from('app_state')
+    .update({ data: state, updated_at: stamp })
+    .eq('id', 1).eq('updated_at', seen).select('updated_at');
+  if (error) throw error;
+  if (!data || !data.length) return false;   /* un autre appareil a ecrit */
+  cloudSeen = stamp;
+  return true;
+}
+
+/* --- Synchro complete ------------------------------------------------ */
+
+/* Coeur de la synchro : lire, fusionner, reecrire, en reessayant si la
+   ligne a bouge pendant l'operation.
+   quiet : ne touche pas a l'indicateur de synchro (rafraichissement de
+   fond, pour ne pas faire clignoter l'interface sans raison). */
+async function cloudSyncOnce(quiet) {
+  if (!sb) { setSync('off', 'Hors ligne'); return false; }
+  if (!quiet) setSync('busy', 'Synchro...');
+
+  for (let essai = 0; essai < 3; essai++) {
+    const read = await cloudRead();
+    if (!read) return false;                 /* cloud illisible : on n'ecrit pas */
+
+    const merged = mergeStates(S, read.data);
+    /* Les deux cotes sont normalises avant comparaison : sans cela un
+       etat cloud qui ignore simplement les champs par defaut passerait
+       pour different, et on reecrirait la ligne a chaque passage. */
+    const cloudNorm    = Object.assign(defaults(), withSyncFields(read.data || {}));
+    const localChanged = canon(merged) !== canon(S);
+    const cloudStale   = canon(merged) !== canon(cloudNorm);
+
+    /* On adopte le resultat de la fusion en local dans tous les cas :
+       c'est lui la verite partagee. */
+    if (localChanged) {
+      S = merged;
+      saveLocalOnly();
+      renderIfIdle();
+    }
+
+    /* Le cloud est deja a jour : rien a ecrire. */
+    if (!cloudStale) {
+      lastSync = new Date();
+      setSync('ok', 'Sauvegardé');
+      return true;
+    }
+
+    try {
+      if (await cloudWrite(merged, read.updatedAt)) {
+        lastSync = new Date();
+        setSync('ok', 'Sauvegardé');
+        return true;
+      }
+      /* false : la ligne a bouge, on relit et on refusionne */
+    } catch (e) {
+      cloudOK = false;
+      console.warn('Echec de la synchro vers le cloud', e);
+      setSync('err', 'Non sauvegardé');
+      return false;
+    }
+  }
+
+  setSync('err', 'Non sauvegardé');
+  return false;
+}
+
+/* Redessine la page, sauf si l'utilisateur est en train de remplir une
+   modale : on ne lui enleve pas son formulaire sous les doigts. */
+function renderIfIdle() {
+  const ov = document.getElementById('modalOv');
+  if (ov && !ov.hidden) return;
+  if (typeof render === 'function') render();
+}
+
+/* Appelee par save() apres chaque saisie. Le nom reste « cloudPush »
+   pour tout le code appelant, mais l'operation fusionne desormais. */
+function cloudPush() {
+  return queueSync(function () { return cloudSyncOnce(false); });
+}
+
+/* Rafraichissement de fond : recupere ce que les autres appareils ont
+   saisi, sans bruit visuel. */
+function cloudRefresh() {
+  return queueSync(function () { return cloudSyncOnce(true); });
+}
+
+/* --- Rafraichissement automatique ------------------------------------ */
+
+/* Sans cela, un appareil reste indefiniment sur sa propre copie : c'est
+   exactement le symptome qu'on corrige. On relit donc le cloud quand
+   l'onglet revient au premier plan et a intervalle regulier. */
+function startAutoSync() {
+  if (syncTimer) return;
+  syncTimer = setInterval(function () {
+    if (document.visibilityState === 'visible') cloudRefresh();
+  }, SYNC_EVERY);
+
+  /* Ces deux ecouteurs ne se retirent pas : ils verifient donc eux-memes
+     que la synchro est encore active, sinon ils continueraient d'appeler
+     le cloud apres une deconnexion. */
+  document.addEventListener('visibilitychange', function () {
+    if (syncTimer && document.visibilityState === 'visible') cloudRefresh();
+  });
+  window.addEventListener('online', function () { if (syncTimer) cloudRefresh(); });
+}
+
+function stopAutoSync() {
+  if (syncTimer) { clearInterval(syncTimer); syncTimer = null; }
+}
+
+/* --- Actions de la page Parametres ----------------------------------- */
+
+/* Bouton « Forcer la synchro » */
 async function syncNow() {
   const ok = await cloudPush();
   toast(ok ? 'Données synchronisées' : 'Échec de la synchro — vérifiez votre connexion', ok ? 'ok' : 'err');
   if (curPage === 'settings') render();
 }
 
-/* Bouton « Restaurer depuis le cloud » de la page Parametres */
+/* Bouton « Restaurer depuis le cloud ».
+   Contrairement a la synchro, c'est un remplacement assume : il sert a
+   recuperer apres une fausse manoeuvre locale, donc il doit pouvoir
+   perdre ce qui est sur l'appareil. D'ou la confirmation. */
 async function cloudRestore() {
-  const d = await cloudPull();
-  if (d && hasData(d)) {
-    S = Object.assign(defaults(), d);
-    save();
-    render();
-    toast('Données restaurées depuis le cloud');
-  } else {
+  const read = await cloudRead();
+  if (!read || !read.data || !hasData(read.data)) {
     toast('Aucune donnée trouvée dans le cloud', 'err');
+    return;
   }
+  const n = countRecords(read.data);
+  if (!await showConfirm('Remplacer les données de cet appareil par celles du cloud ('
+      + n + ' enregistrements) ? Ce qui n\'a pas encore été synchronisé sera perdu.')) return;
+
+  S = Object.assign(defaults(), withSyncFields(read.data));
+  saveLocalOnly();
+  render();
+  toast('Données restaurées depuis le cloud');
 }
 
-/* Premiere synchro apres la connexion.
-   Regle : le cloud ne remplace le cache local que si celui-ci est vide.
-   Sinon c'est le local qui est pousse vers le cloud. Cette asymetrie evite
-   d'ecraser une saisie faite hors ligne. */
+/* Premiere synchro apres la connexion : une fusion, comme les autres.
+   L'ancienne version ne lisait le cloud que si le cache local etait vide,
+   ce qui figeait chaque appareil sur sa propre copie. */
 async function initCloud() {
   try {
     if (!initSb()) return;
-    const cloud = await cloudPull();
-    const localHas = hasData(S);
-    const cloudHas = hasData(cloud);
-
-    if (cloudHas && !localHas) {
-      S = Object.assign(defaults(), cloud);
-      saveLocalOnly();
-      render();
-      toast('Données chargées depuis le cloud', 'ok');
-    } else if (localHas) {
-      cloudPush();
+    const before = countRecords(S);
+    const ok = await cloudPush();
+    const after = countRecords(S);
+    if (ok && after > before) {
+      toast((after - before) + ' enregistrement(s) récupéré(s) depuis le cloud', 'ok');
     }
+    startAutoSync();
   } catch (e) {
     cloudOK = false;
     console.warn('Echec de l initialisation du cloud', e);
@@ -1745,7 +2133,9 @@ async function doLogin() {
 
 async function doLogout() {
   try { if (sb) await sb.auth.signOut(); } catch (e) { /* deconnexion locale quand meme */ }
+  stopAutoSync();
   cloudOK = false;
+  cloudSeen = null;
   curEmail = '';
   document.getElementById('app').hidden = true;
   document.getElementById('loginScreen').hidden = false;
@@ -4486,6 +4876,7 @@ applyTheme();
 setSync('off', 'Hors ligne');
 
 S = load();
+snapSaved();          /* reference de depart pour l'horodatage des changements */
 selMonth = curMo();
 
 initDL();

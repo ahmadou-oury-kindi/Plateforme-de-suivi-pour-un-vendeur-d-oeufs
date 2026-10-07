@@ -42,7 +42,9 @@ async function doLogin() {
 
 async function doLogout() {
   try { if (sb) await sb.auth.signOut(); } catch (e) { /* deconnexion locale quand meme */ }
+  stopAutoSync();
   cloudOK = false;
+  cloudSeen = null;
   curEmail = '';
   document.getElementById('app').hidden = true;
   document.getElementById('loginScreen').hidden = false;
