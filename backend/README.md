@@ -88,8 +88,10 @@ l'ordre :
 
 1. `supabase/01_schema.sql` — cree la table et la ligne `id = 1`
 2. `supabase/02_policies.sql` — verrouille l'acces (RLS)
+3. `supabase/03_backup.sql` — archive les 50 versions precedentes de
+   l'etat, avant chaque ecriture qui le modifie
 
-Les deux scripts sont rejouables : les relancer ne detruit aucune donnee.
+Les trois scripts sont rejouables : les relancer ne detruit aucune donnee.
 
 ## Acces et securite
 
