@@ -17,6 +17,7 @@ function rDash() {
   if (cloudLoading && !hasData()) { pg.innerHTML = skeletonPage(); return; }
 
   const mo = selMonth;
+  const moisCourant = mo === curMo();
   const moSales = S.sales.filter(function (s) { return s.date.startsWith(mo); });
   const moExp   = S.expenses.filter(function (e) { return e.date.startsWith(mo); });
 
@@ -30,16 +31,21 @@ function rDash() {
 
   const moSold = moSales.reduce(function (s, x) { return s + x.quantity; }, 0);
 
-  /* Sept derniers jours glissants, aujourd'hui inclus */
+  /* Sept derniers jours. Sur le mois courant la fenetre est glissante et
+     finit aujourd'hui. Sur un autre mois elle finit au dernier jour de ce
+     mois : afficher octobre sur une page de septembre serait un
+     contresens des que le mois devient selectionnable. */
+  const [ay, am] = mo.split('-').map(Number);
+  const fin = moisCourant ? new Date() : new Date(ay, am, 0);  /* jour 0 = dernier du mois */
   const days = [];
   for (let i = 6; i >= 0; i--) {
-    const d = new Date();
+    const d = new Date(fin);
     d.setDate(d.getDate() - i);
     const ds = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     days.push({
       label: d.toLocaleDateString('fr-FR', { weekday: 'short' }),
       value: getSold(ds),
-      now: i === 0
+      now: moisCourant && i === 0
     });
   }
 
@@ -57,8 +63,11 @@ function rDash() {
   pg.innerHTML = `
     <div class="pg-hd">
       <h1>Tableau de bord</h1>
-      <span class="pg-sub">${moLabel(mo)}</span>
     </div>
+
+    ${moNav()}
+    ${moisCourant ? '' : `<p class="mo-note">Stock, clients et dettes montrent la situation
+      <strong>actuelle</strong>, pas celle de ${moLabel(mo)}.</p>`}
 
     <div class="hero">
       <div class="panel">
@@ -98,7 +107,9 @@ function rDash() {
     </div>
 
     <div class="card">
-      <h3>${icon('chart')} Ventes des 7 derniers jours</h3>
+      <h3>${icon('chart')} ${moisCourant
+        ? 'Ventes des 7 derniers jours'
+        : `Ventes des 7 derniers jours de ${moLabel(mo)}`}</h3>
       ${barChart(days)}
     </div>
 

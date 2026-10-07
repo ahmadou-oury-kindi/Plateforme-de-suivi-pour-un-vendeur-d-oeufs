@@ -94,11 +94,50 @@ function barChart(items) {
        + '</div>';
 }
 
-/* Navigation de mois, partagee par Depenses, Stock et Marges */
+/* Mois proposes dans le selecteur : du premier mois ou une donnee existe
+   jusqu'au mois courant. Les mois creux intercalaires sont conserves —
+   un trou dans l'activite est une information, et sauter un mois dans la
+   liste ferait croire a une erreur. Le mois affiche y figure toujours,
+   meme si les fleches ont mene au-dela. */
+function moRange() {
+  const mois = [curMo(), selMonth];
+  ['sales', 'expenses', 'receptions', 'debts', 'daily'].forEach(function (c) {
+    (S[c] || []).forEach(function (r) {
+      if (r.date) mois.push(r.date.substring(0, 7));
+    });
+  });
+
+  const min = mois.reduce(function (a, b) { return b < a ? b : a; });
+  const max = mois.reduce(function (a, b) { return b > a ? b : a; });
+
+  const out = [];
+  let [y, m] = min.split('-').map(Number);
+  /* Borne de securite : une date aberrante dans les donnees ne doit pas
+     pouvoir faire tourner la boucle sans fin. */
+  for (let garde = 0; garde < 600; garde++) {
+    const ym = y + '-' + String(m).padStart(2, '0');
+    out.push(ym);
+    if (ym >= max) break;
+    m++;
+    if (m > 12) { m = 1; y++; }
+  }
+  return out.reverse();            /* le plus recent en premier */
+}
+
+/* Navigation de mois, partagee par le Tableau de bord, Depenses, Stock et
+   Marges. Les fleches servent au mois d'a cote ; la liste sert a remonter
+   loin sans cliquer dix fois. */
 function moNav() {
+  const opts = moRange().map(function (ym) {
+    return '<option value="' + ym + '"' + (ym === selMonth ? ' selected' : '') + '>'
+         + moLabel(ym) + '</option>';
+  }).join('');
+
   return '<div class="mo-nav">'
        +   '<button class="btn btn-g" onclick="chgMonth(-1)" aria-label="Mois précédent">&larr;</button>'
-       +   '<span>' + moLabel(selMonth) + '</span>'
+       +   '<select class="mo-pick" onchange="setMonth(this.value)" aria-label="Mois affiché">'
+       +     opts
+       +   '</select>'
        +   '<button class="btn btn-g" onclick="chgMonth(1)" aria-label="Mois suivant">&rarr;</button>'
        + '</div>';
 }

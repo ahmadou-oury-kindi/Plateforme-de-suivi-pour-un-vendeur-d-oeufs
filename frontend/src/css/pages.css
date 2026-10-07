@@ -57,13 +57,38 @@
   background:var(--gS2);border:1px solid var(--bd);border-radius:var(--rF);
   box-shadow:var(--sh),var(--shIn);
 }
-.mo-nav span{
+/* Le mois s'ouvre en liste : avec les seules fleches, remonter a janvier
+   demandait neuf clics. Le selecteur garde l'allure du libelle qu'il
+   remplace — fond transparent, aucune bordure au repos — pour que la
+   barre continue de se lire comme un seul objet. */
+.mo-nav .mo-pick{
   font-family:'Outfit',sans-serif;font-weight:600;font-size:.92rem;
-  min-width:150px;text-align:center;text-transform:capitalize;
+  min-width:150px;text-transform:capitalize;
+  text-align:center;text-align-last:center;
   letter-spacing:-.008em;
+  padding:4px 8px;border:1px solid transparent;border-radius:var(--rS);
+  background:transparent;color:var(--tx);
+  cursor:pointer;outline:none;
+  -webkit-appearance:none;appearance:none;
+  transition:background var(--tr),border-color var(--tr);
 }
+.mo-nav .mo-pick:hover{background:var(--gold-bg);border-color:var(--bd2)}
+.mo-nav .mo-pick:focus-visible{border-color:var(--gold);box-shadow:var(--shF)}
+/* La liste ouverte, elle, est dessinee par le systeme : on ne lui impose
+   que ce qui reste lisible dans les deux themes. */
+.mo-nav .mo-pick option{text-transform:capitalize;color:var(--tx);background:var(--bg2)}
+
 .mo-nav .btn-g{border-radius:50%;width:32px;height:32px;padding:0;font-size:.9rem}
 .mo-nav .btn-g:hover{background:var(--gold-bg);color:var(--gold-h)}
+
+/* Rappel affiche quand le mois consulte n'est pas le mois courant : les
+   blocs Stock, Clients et Dettes donnent l'etat du jour, pas celui du
+   mois choisi, et rien d'autre ne le signale. */
+.mo-note{
+  margin:-12px 0 20px;font-size:.86rem;color:var(--tx2);
+  display:flex;align-items:center;gap:6px;
+}
+.mo-note strong{color:var(--tx)}
 
 /* --- GRAPHIQUE DES VENTES --- */
 /* Trois repères horizontaux et une ligne de base : sans eux, l'oeil n'a

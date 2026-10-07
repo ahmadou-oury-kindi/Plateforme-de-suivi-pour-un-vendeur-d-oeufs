@@ -66,7 +66,7 @@
   .pg-hd .btn{width:100%}
   .search-bar{max-width:none}
   .mo-nav{display:flex;width:100%;justify-content:space-between}
-  .mo-nav span{min-width:0;flex:1}
+  .mo-nav .mo-pick{min-width:0;flex:1}
 
   .toast-box{top:auto;bottom:16px;left:16px;right:16px}
   .toast{max-width:none}

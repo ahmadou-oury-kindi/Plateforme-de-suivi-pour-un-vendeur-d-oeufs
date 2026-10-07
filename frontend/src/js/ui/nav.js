@@ -52,11 +52,18 @@ function refresh() {
   if (fn) fn();
 }
 
-/* Navigation par mois, partagee par Depenses, Stock et Marges */
+/* Navigation par mois, partagee par le Tableau de bord, Depenses, Stock
+   et Marges. Deux entrees pour un meme etat : les fleches decalent d'un
+   cran, la liste pose un mois directement. */
 function chgMonth(d) {
   const [y, m] = selMonth.split('-').map(Number);
   const dt = new Date(y, m - 1 + d, 1);
-  selMonth = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+  setMonth(dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0'));
+}
+
+function setMonth(ym) {
+  if (!/^\d{4}-\d{2}$/.test(ym)) return;
+  selMonth = ym;
   render();
 }
 

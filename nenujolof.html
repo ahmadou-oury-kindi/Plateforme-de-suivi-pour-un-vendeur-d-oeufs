@@ -2,7 +2,7 @@
 <!--
   Nenu Jolof — fichier genere automatiquement. NE PAS EDITER A LA MAIN.
   Sources : frontend/src/  ·  Regenerer : npm run build
-  Genere le 07/10/2026 15:25:14
+  Genere le 07/10/2026 16:05:52
 -->
 
 <html lang="fr">
@@ -948,13 +948,38 @@ tbody tr:last-child td{border-bottom:none}
   background:var(--gS2);border:1px solid var(--bd);border-radius:var(--rF);
   box-shadow:var(--sh),var(--shIn);
 }
-.mo-nav span{
+/* Le mois s'ouvre en liste : avec les seules fleches, remonter a janvier
+   demandait neuf clics. Le selecteur garde l'allure du libelle qu'il
+   remplace — fond transparent, aucune bordure au repos — pour que la
+   barre continue de se lire comme un seul objet. */
+.mo-nav .mo-pick{
   font-family:'Outfit',sans-serif;font-weight:600;font-size:.92rem;
-  min-width:150px;text-align:center;text-transform:capitalize;
+  min-width:150px;text-transform:capitalize;
+  text-align:center;text-align-last:center;
   letter-spacing:-.008em;
+  padding:4px 8px;border:1px solid transparent;border-radius:var(--rS);
+  background:transparent;color:var(--tx);
+  cursor:pointer;outline:none;
+  -webkit-appearance:none;appearance:none;
+  transition:background var(--tr),border-color var(--tr);
 }
+.mo-nav .mo-pick:hover{background:var(--gold-bg);border-color:var(--bd2)}
+.mo-nav .mo-pick:focus-visible{border-color:var(--gold);box-shadow:var(--shF)}
+/* La liste ouverte, elle, est dessinee par le systeme : on ne lui impose
+   que ce qui reste lisible dans les deux themes. */
+.mo-nav .mo-pick option{text-transform:capitalize;color:var(--tx);background:var(--bg2)}
+
 .mo-nav .btn-g{border-radius:50%;width:32px;height:32px;padding:0;font-size:.9rem}
 .mo-nav .btn-g:hover{background:var(--gold-bg);color:var(--gold-h)}
+
+/* Rappel affiche quand le mois consulte n'est pas le mois courant : les
+   blocs Stock, Clients et Dettes donnent l'etat du jour, pas celui du
+   mois choisi, et rien d'autre ne le signale. */
+.mo-note{
+  margin:-12px 0 20px;font-size:.86rem;color:var(--tx2);
+  display:flex;align-items:center;gap:6px;
+}
+.mo-note strong{color:var(--tx)}
 
 /* --- GRAPHIQUE DES VENTES --- */
 /* Trois repères horizontaux et une ligne de base : sans eux, l'oeil n'a
@@ -1225,7 +1250,7 @@ tbody tr:last-child td{border-bottom:none}
   .pg-hd .btn{width:100%}
   .search-bar{max-width:none}
   .mo-nav{display:flex;width:100%;justify-content:space-between}
-  .mo-nav span{min-width:0;flex:1}
+  .mo-nav .mo-pick{min-width:0;flex:1}
 
   .toast-box{top:auto;bottom:16px;left:16px;right:16px}
   .toast{max-width:none}
@@ -2871,11 +2896,50 @@ function barChart(items) {
        + '</div>';
 }
 
-/* Navigation de mois, partagee par Depenses, Stock et Marges */
+/* Mois proposes dans le selecteur : du premier mois ou une donnee existe
+   jusqu'au mois courant. Les mois creux intercalaires sont conserves —
+   un trou dans l'activite est une information, et sauter un mois dans la
+   liste ferait croire a une erreur. Le mois affiche y figure toujours,
+   meme si les fleches ont mene au-dela. */
+function moRange() {
+  const mois = [curMo(), selMonth];
+  ['sales', 'expenses', 'receptions', 'debts', 'daily'].forEach(function (c) {
+    (S[c] || []).forEach(function (r) {
+      if (r.date) mois.push(r.date.substring(0, 7));
+    });
+  });
+
+  const min = mois.reduce(function (a, b) { return b < a ? b : a; });
+  const max = mois.reduce(function (a, b) { return b > a ? b : a; });
+
+  const out = [];
+  let [y, m] = min.split('-').map(Number);
+  /* Borne de securite : une date aberrante dans les donnees ne doit pas
+     pouvoir faire tourner la boucle sans fin. */
+  for (let garde = 0; garde < 600; garde++) {
+    const ym = y + '-' + String(m).padStart(2, '0');
+    out.push(ym);
+    if (ym >= max) break;
+    m++;
+    if (m > 12) { m = 1; y++; }
+  }
+  return out.reverse();            /* le plus recent en premier */
+}
+
+/* Navigation de mois, partagee par le Tableau de bord, Depenses, Stock et
+   Marges. Les fleches servent au mois d'a cote ; la liste sert a remonter
+   loin sans cliquer dix fois. */
 function moNav() {
+  const opts = moRange().map(function (ym) {
+    return '<option value="' + ym + '"' + (ym === selMonth ? ' selected' : '') + '>'
+         + moLabel(ym) + '</option>';
+  }).join('');
+
   return '<div class="mo-nav">'
        +   '<button class="btn btn-g" onclick="chgMonth(-1)" aria-label="Mois précédent">&larr;</button>'
-       +   '<span>' + moLabel(selMonth) + '</span>'
+       +   '<select class="mo-pick" onchange="setMonth(this.value)" aria-label="Mois affiché">'
+       +     opts
+       +   '</select>'
        +   '<button class="btn btn-g" onclick="chgMonth(1)" aria-label="Mois suivant">&rarr;</button>'
        + '</div>';
 }
@@ -3140,11 +3204,18 @@ function refresh() {
   if (fn) fn();
 }
 
-/* Navigation par mois, partagee par Depenses, Stock et Marges */
+/* Navigation par mois, partagee par le Tableau de bord, Depenses, Stock
+   et Marges. Deux entrees pour un meme etat : les fleches decalent d'un
+   cran, la liste pose un mois directement. */
 function chgMonth(d) {
   const [y, m] = selMonth.split('-').map(Number);
   const dt = new Date(y, m - 1 + d, 1);
-  selMonth = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+  setMonth(dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0'));
+}
+
+function setMonth(ym) {
+  if (!/^\d{4}-\d{2}$/.test(ym)) return;
+  selMonth = ym;
   render();
 }
 
@@ -3495,6 +3566,7 @@ function rDash() {
   if (cloudLoading && !hasData()) { pg.innerHTML = skeletonPage(); return; }
 
   const mo = selMonth;
+  const moisCourant = mo === curMo();
   const moSales = S.sales.filter(function (s) { return s.date.startsWith(mo); });
   const moExp   = S.expenses.filter(function (e) { return e.date.startsWith(mo); });
 
@@ -3508,16 +3580,21 @@ function rDash() {
 
   const moSold = moSales.reduce(function (s, x) { return s + x.quantity; }, 0);
 
-  /* Sept derniers jours glissants, aujourd'hui inclus */
+  /* Sept derniers jours. Sur le mois courant la fenetre est glissante et
+     finit aujourd'hui. Sur un autre mois elle finit au dernier jour de ce
+     mois : afficher octobre sur une page de septembre serait un
+     contresens des que le mois devient selectionnable. */
+  const [ay, am] = mo.split('-').map(Number);
+  const fin = moisCourant ? new Date() : new Date(ay, am, 0);  /* jour 0 = dernier du mois */
   const days = [];
   for (let i = 6; i >= 0; i--) {
-    const d = new Date();
+    const d = new Date(fin);
     d.setDate(d.getDate() - i);
     const ds = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     days.push({
       label: d.toLocaleDateString('fr-FR', { weekday: 'short' }),
       value: getSold(ds),
-      now: i === 0
+      now: moisCourant && i === 0
     });
   }
 
@@ -3535,8 +3612,11 @@ function rDash() {
   pg.innerHTML = `
     <div class="pg-hd">
       <h1>Tableau de bord</h1>
-      <span class="pg-sub">${moLabel(mo)}</span>
     </div>
+
+    ${moNav()}
+    ${moisCourant ? '' : `<p class="mo-note">Stock, clients et dettes montrent la situation
+      <strong>actuelle</strong>, pas celle de ${moLabel(mo)}.</p>`}
 
     <div class="hero">
       <div class="panel">
@@ -3576,7 +3656,9 @@ function rDash() {
     </div>
 
     <div class="card">
-      <h3>${icon('chart')} Ventes des 7 derniers jours</h3>
+      <h3>${icon('chart')} ${moisCourant
+        ? 'Ventes des 7 derniers jours'
+        : `Ventes des 7 derniers jours de ${moLabel(mo)}`}</h3>
       ${barChart(days)}
     </div>
 
