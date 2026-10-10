@@ -2,7 +2,7 @@
 <!--
   Nenu Jolof — fichier genere automatiquement. NE PAS EDITER A LA MAIN.
   Sources : frontend/src/  ·  Regenerer : npm run build
-  Genere le 10/10/2026 00:18:30
+  Genere le 10/10/2026 15:27:16
 -->
 
 <html lang="fr">
@@ -538,6 +538,7 @@ svg{width:1.2em;height:1.2em;flex-shrink:0}
 /* Titre de bloc : l'icone est posee sur une pastille discrete, ce qui la
    rattache au titre au lieu de la laisser flotter dans la marge. */
 .card h3,.panel h3{display:flex;align-items:center;gap:10px;margin-bottom:16px;color:var(--tx)}
+.card h3 .hd-sub,.panel h3 .hd-sub{margin-left:auto;font-size:.78rem;font-weight:500;color:var(--tx3);letter-spacing:0}
 .card h3 svg,.panel h3 svg{
   width:16px;height:16px;color:var(--gold);
   padding:6px;box-sizing:content-box;border-radius:9px;
@@ -606,6 +607,7 @@ svg{width:1.2em;height:1.2em;flex-shrink:0}
   margin-top:18px;padding-top:14px;border-top:1px solid var(--bd);
   font-size:.8rem;color:var(--tx3);
 }
+.hero-foot-sep{margin:0 4px;color:var(--tx3)}
 
 /* Liste des dettes en deux colonnes : avec une vingtaine de creances,
    une carte pleine largeur par dette obligeait a defiler sans fin.
@@ -898,6 +900,12 @@ tbody tr:last-child td{border-bottom:none}
 .muted{color:var(--tx3)}
 .row-off{opacity:.5}
 .row-off:hover{opacity:.85}
+
+/* Lignes de depenses liees a une casse : on signale la liaison sans
+   deguiser la ligne. L'icone cadenas rappelle qu'elles ne se modifient
+   pas depuis la page Depenses. */
+.row-linked td{color:var(--tx2)}
+.link-tag{display:inline-block;margin-left:6px;font-size:.78rem;color:var(--tx3);cursor:help}
 
 /* Cellule secondaire sous un libelle principal */
 .cell-sub{display:block;color:var(--tx3);font-size:.77rem;line-height:1.35;margin-top:2px}
@@ -1519,8 +1527,17 @@ const THEME_KEY = 'nj_theme';
 const SUPA_URL = 'https://vnvhupmczqwclgmdhqea.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZudmh1cG1jenF3Y2xnbWRocWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODcxNTgsImV4cCI6MjEwNDQ2MzE1OH0.HuxQ1YTqAvfyhar8CGcxypzuMNeho43LT-Gciqfks6c';
 
-/* Categories de depenses proposees dans le formulaire */
-const CATS = ['Transport', 'Téléphone', 'Loyer', 'Salaire', 'Électricité', 'Divers'];
+/* Categories de depenses proposees dans le formulaire.
+   « Casse / Perte » est reservee aux depenses auto-generees par une
+   declaration de casse (voir pages/stock.js) : elle apparait dans la
+   liste pour que les anciennes depenses creees avant la synchro restent
+   lisibles, mais le formulaire manuel ne devrait pas la selectionner. */
+const CATS = ['Transport', 'Téléphone', 'Loyer', 'Salaire', 'Électricité', 'Divers', 'Casse / Perte'];
+
+/* Libelle utilise par toutes les depenses liees a une casse. Centralise
+   pour qu'un changement d'intitule reste coherent entre creation,
+   affichage et filtres. */
+const LOSS_CAT = 'Casse / Perte';
 
 /* Types de client.
    v = valeur stockee · l = libelle long · p = pluriel (filtres)
@@ -1573,6 +1590,7 @@ function defaults() {
     receptions: [],
     daily: [],
     sales: [],
+    losses: [],
     /* Champs de synchro (voir merge.js) : horodatage des scalaires et
        pierres tombales des enregistrements supprimes. */
     _stockUp: null,
@@ -1637,7 +1655,8 @@ function hasData(o) {
     (d.expenses   || []).length ||
     (d.receptions || []).length ||
     (d.sales      || []).length ||
-    (d.daily      || []).length
+    (d.daily      || []).length ||
+    (d.losses     || []).length
   );
 }
 
@@ -1681,6 +1700,7 @@ const SYNC_COLLS = {
   expenses:   'id',
   receptions: 'id',
   sales:      'id',
+  losses:     'id',
   daily:      'date'
 };
 
@@ -3402,6 +3422,15 @@ function getSold(date) {
     .reduce(function (s, x) { return s + x.quantity; }, 0);
 }
 
+/* Plateaux casses un jour donne — chaque declaration de perte sort du
+   stock exactement comme une sortie, pour que l'inventaire du soir colle
+   a ce qu'il y a reellement en magasin. */
+function getBroken(date) {
+  return (S.losses || [])
+    .filter(function (l) { return l.date === date; })
+    .reduce(function (s, l) { return s + (l.plateaux || 0); }, 0);
+}
+
 /* Decomposition du calcul du stock theorique en fin de journee `date` :
    le point de depart, ce qui est entre, ce qui est sorti. Une seule
    fonction pour le calcul ET pour l'explication affichee a l'ecran —
@@ -3437,9 +3466,12 @@ function stockBasis(date) {
   const sold = S.sales
     .filter(function (x) { return inRange(x.date); })
     .reduce(function (s, x) { return s + x.quantity; }, 0);
+  const broken = (S.losses || [])
+    .filter(function (l) { return inRange(l.date); })
+    .reduce(function (s, l) { return s + (l.plateaux || 0); }, 0);
 
-  return { label: label, base: base, received: received, sold: sold,
-           theo: base + received - sold };
+  return { label: label, base: base, received: received, sold: sold, broken: broken,
+           theo: base + received - sold - broken };
 }
 
 /* Stock theorique en fin de journee : ce que le magasin devrait contenir
@@ -3479,7 +3511,7 @@ function activeDates(mo) {
   function add(list) {
     list.forEach(function (x) { if (x.date.startsWith(mo)) seen[x.date] = true; });
   }
-  add(S.receptions); add(S.sales);
+  add(S.receptions); add(S.sales); add(S.losses || []);
   add(S.daily.filter(function (d) { return d.closingStock != null; }));
   return Object.keys(seen).sort(function (a, b) { return b.localeCompare(a); });
 }
@@ -3772,6 +3804,10 @@ function rDash() {
   const tone  = coverTone(cover);
   const lastRec = lastReception();
 
+  const moLoss = (S.losses || []).filter(function (l) { return l.date.startsWith(mo); });
+  const brokenCount = moLoss.reduce(function (s, l) { return s + (l.plateaux || 0); }, 0);
+  const brokenAmt   = moLoss.reduce(function (s, l) { return s + (l.amount || 0); }, 0);
+
   const nAct = activeClients().length;
   const nLoy = S.clients.filter(isLoyal).length;
   const enCours = countDebts('en_cours');
@@ -3819,7 +3855,9 @@ function rDash() {
         }) : `<div class="form-hint" style="margin-top:20px">Renseignez les plateaux/semaine de vos clients pour suivre la couverture du stock.</div>`}
         <div class="hero-foot">${lastRec
           ? `Dernière réception : <strong>${lastRec.quantity} plateaux</strong> ${agoLabel(lastRec.date)}`
-          : 'Aucune réception enregistrée'}</div>
+          : 'Aucune réception enregistrée'}${brokenCount
+            ? ` <span class="hero-foot-sep">·</span> Pertes du mois : <strong style="color:var(--red)">${brokenCount} ${plur(brokenCount, 'plateau', 'x')}</strong> <span class="muted">(${cfa(brokenAmt)})</span>`
+            : ''}</div>
       </div>
     </div>
 
@@ -4595,14 +4633,15 @@ function rExpenses() {
     ${list.length ? `<div class="card card-flat"><div class="tbl-wrap"><table>
       <thead><tr><th>Date</th><th>Description</th><th>Catégorie</th><th class="ta-r">Montant</th><th></th></tr></thead>
       <tbody>${list.map(function (e) {
-        return `<tr>
+        const linked = !!e.lossId;
+        return `<tr${linked ? ' class="row-linked"' : ''}>
           <td class="nowrap">${fmtD(e.date)}</td>
-          <td>${esc(e.description)}</td>
-          <td><span class="badge badge-gold">${esc(e.category)}</span></td>
+          <td>${esc(e.description)}${linked ? ' <span class="link-tag" title="Liée à une casse — gérez-la depuis Stock">&#128274;</span>' : ''}</td>
+          <td><span class="badge ${linked ? 'badge-red' : 'badge-gold'}">${esc(e.category)}</span></td>
           <td class="ta-r" style="font-weight:600">${cfa(e.amount)}</td>
           <td class="nowrap">
-            <button class="btn-icon edit" onclick="editExpense('${e.id}')" title="Modifier">&#9998;</button>
-            <button class="btn-icon" onclick="delExpense('${e.id}')" title="Supprimer">&times;</button>
+            <button class="btn-icon edit" onclick="editExpense('${e.id}')" title="${linked ? 'Liée à une casse — modifiez-la depuis Stock' : 'Modifier'}">&#9998;</button>
+            <button class="btn-icon" onclick="delExpense('${e.id}')" title="${linked ? 'Liée à une casse — supprimez-la depuis Stock' : 'Supprimer'}">&times;</button>
           </td>
         </tr>`;
       }).join('')}</tbody>
@@ -4615,9 +4654,13 @@ function rExpenses() {
 }
 
 /* Options de categorie. Une categorie disparue de CATS mais presente dans
-   une ancienne depense reste proposee, pour ne pas la perdre en modifiant. */
+   une ancienne depense reste proposee, pour ne pas la perdre en modifiant.
+   La categorie « Casse / Perte » est reservee aux depenses auto-generees :
+   on l'exclut du formulaire manuel pour qu'elle ne devienne pas un simple
+   libelle sans lien avec une declaration de casse. */
 function catOpts(sel) {
-  const list = (sel && !CATS.includes(sel)) ? CATS.concat([sel]) : CATS;
+  let list = CATS.filter(function (c) { return c !== LOSS_CAT; });
+  if (sel && !list.includes(sel)) list = list.concat([sel]);
   return list.map(function (c) {
     return '<option' + (c === sel ? ' selected' : '') + '>' + esc(c) + '</option>';
   }).join('');
@@ -4657,6 +4700,10 @@ function saveExpense() {
 function editExpense(id) {
   const e = S.expenses.find(function (x) { return x.id === id; });
   if (!e) return;
+  if (e.lossId) {
+    toast('Cette dépense est liée à une casse — modifiez-la depuis la page Stock', 'info');
+    return;
+  }
   openModal('Modifier la dépense', expenseForm(e) + `
     <div class="modal-ft">
       <button class="btn btn-s" onclick="closeModal()">Annuler</button>
@@ -4677,6 +4724,12 @@ function updExpense(id) {
 }
 
 async function delExpense(id) {
+  const e = S.expenses.find(function (x) { return x.id === id; });
+  if (!e) return;
+  if (e.lossId) {
+    toast('Cette dépense est liée à une casse — supprimez-la depuis la page Stock', 'info');
+    return;
+  }
   if (await showConfirm('Supprimer cette dépense ?')) {
     S.expenses = S.expenses.filter(function (x) { return x.id !== id; });
     save(); rExpenses(); toast('Dépense supprimée');
@@ -4722,6 +4775,10 @@ function rStock() {
   const totalRec  = moRec.reduce(function (s, r) { return s + r.quantity; }, 0);
   const totalSold = S.sales.filter(function (s) { return s.date.startsWith(mo); })
     .reduce(function (s, x) { return s + x.quantity; }, 0);
+  const moLoss = (S.losses || []).filter(function (l) { return l.date.startsWith(mo); })
+    .sort(function (a, b) { return b.date.localeCompare(a.date); });
+  const totalBroken = moLoss.reduce(function (s, l) { return s + (l.plateaux || 0); }, 0);
+  const totalBrokenAmt = moLoss.reduce(function (s, l) { return s + (l.amount || 0); }, 0);
 
   document.getElementById('pg-stock').innerHTML = `
     <div class="pg-hd"><h1>Stock</h1></div>
@@ -4743,6 +4800,7 @@ function rStock() {
       <div class="today-actions">
         <button class="btn btn-p" onclick="addReception()">${icon('plus')} Réception</button>
         <button class="btn btn-s" onclick="addSale()">${icon('plus')} Vente du jour</button>
+        <button class="btn btn-s" onclick="addLoss()">${icon('alert')} Déclarer une casse</button>
         ${inv
           ? '<button class="btn btn-s" onclick="doInventory()">Corriger l\'inventaire</button>'
           : '<button class="btn btn-s" onclick="doInventory()">Inventaire du soir</button>'}
@@ -4812,16 +4870,37 @@ function rStock() {
     </div>
 
     <div class="card">
+      <h3>${icon('alert')} Pertes / casses${totalBroken ? ` <span class="hd-sub">${totalBroken} ${plur(totalBroken, 'plateau', 'x')} · ${cfa(totalBrokenAmt)}</span>` : ''}</h3>
+      ${moLoss.length ? `<div class="tbl-wrap"><table>
+        <thead><tr><th>Date</th><th>Plateaux</th><th>Prix unitaire</th><th>Montant</th><th>Motif</th><th></th></tr></thead>
+        <tbody>${moLoss.map(function (l) {
+          return `<tr>
+            <td class="nowrap">${fmtD(l.date)}</td>
+            <td><strong>${l.plateaux}</strong></td>
+            <td>${cfa(l.prixUnitaire)}</td>
+            <td style="color:var(--red);font-weight:600">− ${cfa(l.amount)}</td>
+            <td style="color:var(--tx2)">${esc(l.note || '')}</td>
+            <td><button class="btn-icon" onclick="delLoss('${l.id}')" title="Supprimer">&times;</button></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>
+      <div class="form-hint" style="margin-top:10px">Une dépense liée a été créée automatiquement dans la catégorie « ${LOSS_CAT} » pour chaque casse — supprimer une perte retire aussi sa dépense.</div>`
+        : emptyState({ icon: 'alert', small: true, text: 'Aucune casse déclarée ce mois' })}
+    </div>
+
+    <div class="card">
       <h3>Journal quotidien</h3>
       ${moDates.length ? `<div class="tbl-wrap"><table>
-        <thead><tr><th>Date</th><th>Reçu</th><th>Vendu</th><th>Stock le soir</th><th>Inventaire</th></tr></thead>
+        <thead><tr><th>Date</th><th>Reçu</th><th>Vendu</th><th>Cassé</th><th>Stock le soir</th><th>Inventaire</th></tr></thead>
         <tbody>${moDates.map(function (d) {
           const iv = inventoryOn(d);
           const gp = stockGap(d);
+          const br = getBroken(d);
           return `<tr>
             <td class="nowrap">${fmtD(d)}</td>
             <td>${getReceived(d) || '—'}</td>
             <td>${getSold(d) || '—'}</td>
+            <td${br ? ' style="color:var(--red)"' : ''}>${br ? '− ' + br : '—'}</td>
             <td><strong>${num(stockOn(d))}</strong></td>
             <td>${iv
               ? `${num(iv.closingStock)} <span class="cell-sub" style="color:${gp === 0 ? 'var(--green)' : 'var(--red)'}">${gapLabel(gp)}</span>`
@@ -4918,7 +4997,7 @@ function doInventory() {
   openModal(inv ? "Corriger l'inventaire" : 'Inventaire du soir', `
     <div class="form-hint" style="margin-bottom:14px;line-height:1.7">
       ${esc(b.label)} : <strong>${num(b.base)}</strong><br>
-      + ${num(b.received)} reçus &nbsp;·&nbsp; − ${num(b.sold)} vendus<br>
+      + ${num(b.received)} reçus &nbsp;·&nbsp; − ${num(b.sold)} vendus${b.broken ? ' &nbsp;·&nbsp; − ' + num(b.broken) + ' cassés' : ''}<br>
       = stock théorique ce soir : <strong>${num(b.theo)} plateaux</strong>
     </div>
     <div class="form-g">
@@ -4974,6 +5053,90 @@ async function delInventory() {
   if (!await showConfirm("Supprimer l'inventaire du jour ? Le stock repartira du calcul théorique.")) return;
   S.daily = S.daily.filter(function (e) { return e.date !== today(); });
   save(); closeModal(); rStock(); toast('Inventaire supprimé');
+}
+
+/* --- Pertes / casses ------------------------------------------------- */
+
+/* Chaque declaration de casse a deux effets couples :
+     · elle sort les plateaux du stock (via S.losses, pris en compte dans
+       stockBasis) ;
+     · elle cree une depense dans S.expenses, categorie « Casse / Perte »,
+       pour que l'argent perdu apparaisse dans les comptes du mois.
+   Les deux enregistrements se referencent mutuellement (loss.expenseId,
+   expense.lossId) pour que la suppression reste symetrique : supprimer
+   la perte retire la depense, et l'onglet Depenses bloque la suppression
+   d'une depense liee en renvoyant vers la page Stock. */
+function addLoss() {
+  const latestCost = getLatestCost();
+  openModal('Déclarer une casse', `
+    <div class="form-hint" style="margin-bottom:12px">Les plateaux cassés sortent du stock et une dépense équivalente est enregistrée automatiquement.</div>
+    <div class="form-g"><label>Date de la casse *</label><input id="m-lossdate" type="date" value="${today()}"></div>
+    <div class="form-row">
+      <div class="form-g"><label>Nombre de plateaux cassés *</label><input id="m-lossqty" type="number" min="1" step="1" oninput="updLossAmount()"></div>
+      <div class="form-g"><label>Prix d'achat / plateau (FCFA) *</label><input id="m-lossprice" type="number" min="0" value="${latestCost || ''}" oninput="updLossAmount()"></div>
+    </div>
+    <div class="form-g"><label>Montant total (FCFA)</label><input id="m-lossamt" type="number" readonly><div class="form-hint">Calculé automatiquement : plateaux × prix.</div></div>
+    <div class="form-g"><label>Motif (optionnel)</label><input id="m-lossnote" placeholder="Ex: déchargement, chute, transport..."></div>
+    <div class="modal-ft">
+      <button class="btn btn-s" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-p" onclick="saveLoss()">Enregistrer</button>
+    </div>`);
+  updLossAmount();
+}
+
+function updLossAmount() {
+  const n = document.getElementById('m-lossqty').value;
+  const p = document.getElementById('m-lossprice').value;
+  const amt = document.getElementById('m-lossamt');
+  if (n === '' || p === '') { amt.value = ''; return; }
+  const total = Math.round(parseFloat(n) * parseFloat(p));
+  amt.value = isFinite(total) && total >= 0 ? total : '';
+}
+
+function saveLoss() {
+  const date = val('m-lossdate') || today();
+  const n = parseInt(document.getElementById('m-lossqty').value, 10);
+  const p = numVal('m-lossprice');
+  const note = val('m-lossnote');
+  if (!n || n <= 0) { toast('Nombre de plateaux invalide', 'err'); return; }
+  if (isNaN(p) || p <= 0) { toast('Prix unitaire invalide', 'err'); return; }
+  if (date > today()) { toast('La date ne peut pas être dans le futur', 'err'); return; }
+
+  const amt = Math.round(n * p);
+  const lossId = gid();
+  const expenseId = gid();
+  const desc = 'Casse : ' + n + ' ' + plur(n, 'plateau', 'x') + (note ? ' — ' + note : '');
+
+  S.losses.push({
+    id: lossId,
+    date: date,
+    plateaux: n,
+    prixUnitaire: p,
+    amount: amt,
+    note: note,
+    expenseId: expenseId
+  });
+  S.expenses.push({
+    id: expenseId,
+    date: date,
+    description: desc,
+    category: LOSS_CAT,
+    amount: amt,
+    lossId: lossId
+  });
+
+  save(); closeModal(); rStock();
+  toast(n + ' ' + plur(n, 'plateau', 'x') + ' ' + plur(n, 'cassé') + ' — ' + cfa(amt) + ' en dépense');
+  warnStockAfter(date);
+}
+
+async function delLoss(id) {
+  const l = (S.losses || []).find(function (x) { return x.id === id; });
+  if (!l) return;
+  if (!await showConfirm('Supprimer cette casse ? La dépense liée de <strong>' + cfa(l.amount) + '</strong> sera également retirée et le stock remontera de ' + l.plateaux + ' plateaux.')) return;
+  S.losses = S.losses.filter(function (x) { return x.id !== id; });
+  if (l.expenseId) S.expenses = S.expenses.filter(function (e) { return e.id !== l.expenseId; });
+  save(); rStock(); toast('Casse supprimée');
 }
 
 /* Appelee apres tout mouvement (vente ou reception). Elle couvre les deux

@@ -36,6 +36,10 @@ function rStock() {
   const totalRec  = moRec.reduce(function (s, r) { return s + r.quantity; }, 0);
   const totalSold = S.sales.filter(function (s) { return s.date.startsWith(mo); })
     .reduce(function (s, x) { return s + x.quantity; }, 0);
+  const moLoss = (S.losses || []).filter(function (l) { return l.date.startsWith(mo); })
+    .sort(function (a, b) { return b.date.localeCompare(a.date); });
+  const totalBroken = moLoss.reduce(function (s, l) { return s + (l.plateaux || 0); }, 0);
+  const totalBrokenAmt = moLoss.reduce(function (s, l) { return s + (l.amount || 0); }, 0);
 
   document.getElementById('pg-stock').innerHTML = `
     <div class="pg-hd"><h1>Stock</h1></div>
@@ -57,6 +61,7 @@ function rStock() {
       <div class="today-actions">
         <button class="btn btn-p" onclick="addReception()">${icon('plus')} Réception</button>
         <button class="btn btn-s" onclick="addSale()">${icon('plus')} Vente du jour</button>
+        <button class="btn btn-s" onclick="addLoss()">${icon('alert')} Déclarer une casse</button>
         ${inv
           ? '<button class="btn btn-s" onclick="doInventory()">Corriger l\'inventaire</button>'
           : '<button class="btn btn-s" onclick="doInventory()">Inventaire du soir</button>'}
@@ -126,16 +131,37 @@ function rStock() {
     </div>
 
     <div class="card">
+      <h3>${icon('alert')} Pertes / casses${totalBroken ? ` <span class="hd-sub">${totalBroken} ${plur(totalBroken, 'plateau', 'x')} · ${cfa(totalBrokenAmt)}</span>` : ''}</h3>
+      ${moLoss.length ? `<div class="tbl-wrap"><table>
+        <thead><tr><th>Date</th><th>Plateaux</th><th>Prix unitaire</th><th>Montant</th><th>Motif</th><th></th></tr></thead>
+        <tbody>${moLoss.map(function (l) {
+          return `<tr>
+            <td class="nowrap">${fmtD(l.date)}</td>
+            <td><strong>${l.plateaux}</strong></td>
+            <td>${cfa(l.prixUnitaire)}</td>
+            <td style="color:var(--red);font-weight:600">− ${cfa(l.amount)}</td>
+            <td style="color:var(--tx2)">${esc(l.note || '')}</td>
+            <td><button class="btn-icon" onclick="delLoss('${l.id}')" title="Supprimer">&times;</button></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>
+      <div class="form-hint" style="margin-top:10px">Une dépense liée a été créée automatiquement dans la catégorie « ${LOSS_CAT} » pour chaque casse — supprimer une perte retire aussi sa dépense.</div>`
+        : emptyState({ icon: 'alert', small: true, text: 'Aucune casse déclarée ce mois' })}
+    </div>
+
+    <div class="card">
       <h3>Journal quotidien</h3>
       ${moDates.length ? `<div class="tbl-wrap"><table>
-        <thead><tr><th>Date</th><th>Reçu</th><th>Vendu</th><th>Stock le soir</th><th>Inventaire</th></tr></thead>
+        <thead><tr><th>Date</th><th>Reçu</th><th>Vendu</th><th>Cassé</th><th>Stock le soir</th><th>Inventaire</th></tr></thead>
         <tbody>${moDates.map(function (d) {
           const iv = inventoryOn(d);
           const gp = stockGap(d);
+          const br = getBroken(d);
           return `<tr>
             <td class="nowrap">${fmtD(d)}</td>
             <td>${getReceived(d) || '—'}</td>
             <td>${getSold(d) || '—'}</td>
+            <td${br ? ' style="color:var(--red)"' : ''}>${br ? '− ' + br : '—'}</td>
             <td><strong>${num(stockOn(d))}</strong></td>
             <td>${iv
               ? `${num(iv.closingStock)} <span class="cell-sub" style="color:${gp === 0 ? 'var(--green)' : 'var(--red)'}">${gapLabel(gp)}</span>`
@@ -232,7 +258,7 @@ function doInventory() {
   openModal(inv ? "Corriger l'inventaire" : 'Inventaire du soir', `
     <div class="form-hint" style="margin-bottom:14px;line-height:1.7">
       ${esc(b.label)} : <strong>${num(b.base)}</strong><br>
-      + ${num(b.received)} reçus &nbsp;·&nbsp; − ${num(b.sold)} vendus<br>
+      + ${num(b.received)} reçus &nbsp;·&nbsp; − ${num(b.sold)} vendus${b.broken ? ' &nbsp;·&nbsp; − ' + num(b.broken) + ' cassés' : ''}<br>
       = stock théorique ce soir : <strong>${num(b.theo)} plateaux</strong>
     </div>
     <div class="form-g">
@@ -288,6 +314,90 @@ async function delInventory() {
   if (!await showConfirm("Supprimer l'inventaire du jour ? Le stock repartira du calcul théorique.")) return;
   S.daily = S.daily.filter(function (e) { return e.date !== today(); });
   save(); closeModal(); rStock(); toast('Inventaire supprimé');
+}
+
+/* --- Pertes / casses ------------------------------------------------- */
+
+/* Chaque declaration de casse a deux effets couples :
+     · elle sort les plateaux du stock (via S.losses, pris en compte dans
+       stockBasis) ;
+     · elle cree une depense dans S.expenses, categorie « Casse / Perte »,
+       pour que l'argent perdu apparaisse dans les comptes du mois.
+   Les deux enregistrements se referencent mutuellement (loss.expenseId,
+   expense.lossId) pour que la suppression reste symetrique : supprimer
+   la perte retire la depense, et l'onglet Depenses bloque la suppression
+   d'une depense liee en renvoyant vers la page Stock. */
+function addLoss() {
+  const latestCost = getLatestCost();
+  openModal('Déclarer une casse', `
+    <div class="form-hint" style="margin-bottom:12px">Les plateaux cassés sortent du stock et une dépense équivalente est enregistrée automatiquement.</div>
+    <div class="form-g"><label>Date de la casse *</label><input id="m-lossdate" type="date" value="${today()}"></div>
+    <div class="form-row">
+      <div class="form-g"><label>Nombre de plateaux cassés *</label><input id="m-lossqty" type="number" min="1" step="1" oninput="updLossAmount()"></div>
+      <div class="form-g"><label>Prix d'achat / plateau (FCFA) *</label><input id="m-lossprice" type="number" min="0" value="${latestCost || ''}" oninput="updLossAmount()"></div>
+    </div>
+    <div class="form-g"><label>Montant total (FCFA)</label><input id="m-lossamt" type="number" readonly><div class="form-hint">Calculé automatiquement : plateaux × prix.</div></div>
+    <div class="form-g"><label>Motif (optionnel)</label><input id="m-lossnote" placeholder="Ex: déchargement, chute, transport..."></div>
+    <div class="modal-ft">
+      <button class="btn btn-s" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-p" onclick="saveLoss()">Enregistrer</button>
+    </div>`);
+  updLossAmount();
+}
+
+function updLossAmount() {
+  const n = document.getElementById('m-lossqty').value;
+  const p = document.getElementById('m-lossprice').value;
+  const amt = document.getElementById('m-lossamt');
+  if (n === '' || p === '') { amt.value = ''; return; }
+  const total = Math.round(parseFloat(n) * parseFloat(p));
+  amt.value = isFinite(total) && total >= 0 ? total : '';
+}
+
+function saveLoss() {
+  const date = val('m-lossdate') || today();
+  const n = parseInt(document.getElementById('m-lossqty').value, 10);
+  const p = numVal('m-lossprice');
+  const note = val('m-lossnote');
+  if (!n || n <= 0) { toast('Nombre de plateaux invalide', 'err'); return; }
+  if (isNaN(p) || p <= 0) { toast('Prix unitaire invalide', 'err'); return; }
+  if (date > today()) { toast('La date ne peut pas être dans le futur', 'err'); return; }
+
+  const amt = Math.round(n * p);
+  const lossId = gid();
+  const expenseId = gid();
+  const desc = 'Casse : ' + n + ' ' + plur(n, 'plateau', 'x') + (note ? ' — ' + note : '');
+
+  S.losses.push({
+    id: lossId,
+    date: date,
+    plateaux: n,
+    prixUnitaire: p,
+    amount: amt,
+    note: note,
+    expenseId: expenseId
+  });
+  S.expenses.push({
+    id: expenseId,
+    date: date,
+    description: desc,
+    category: LOSS_CAT,
+    amount: amt,
+    lossId: lossId
+  });
+
+  save(); closeModal(); rStock();
+  toast(n + ' ' + plur(n, 'plateau', 'x') + ' ' + plur(n, 'cassé') + ' — ' + cfa(amt) + ' en dépense');
+  warnStockAfter(date);
+}
+
+async function delLoss(id) {
+  const l = (S.losses || []).find(function (x) { return x.id === id; });
+  if (!l) return;
+  if (!await showConfirm('Supprimer cette casse ? La dépense liée de <strong>' + cfa(l.amount) + '</strong> sera également retirée et le stock remontera de ' + l.plateaux + ' plateaux.')) return;
+  S.losses = S.losses.filter(function (x) { return x.id !== id; });
+  if (l.expenseId) S.expenses = S.expenses.filter(function (e) { return e.id !== l.expenseId; });
+  save(); rStock(); toast('Casse supprimée');
 }
 
 /* Appelee apres tout mouvement (vente ou reception). Elle couvre les deux

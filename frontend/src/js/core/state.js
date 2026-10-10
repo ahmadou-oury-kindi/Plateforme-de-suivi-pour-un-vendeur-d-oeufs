@@ -32,6 +32,7 @@ function defaults() {
     receptions: [],
     daily: [],
     sales: [],
+    losses: [],
     /* Champs de synchro (voir merge.js) : horodatage des scalaires et
        pierres tombales des enregistrements supprimes. */
     _stockUp: null,
@@ -96,6 +97,7 @@ function hasData(o) {
     (d.expenses   || []).length ||
     (d.receptions || []).length ||
     (d.sales      || []).length ||
-    (d.daily      || []).length
+    (d.daily      || []).length ||
+    (d.losses     || []).length
   );
 }

@@ -54,6 +54,15 @@ function getSold(date) {
     .reduce(function (s, x) { return s + x.quantity; }, 0);
 }
 
+/* Plateaux casses un jour donne — chaque declaration de perte sort du
+   stock exactement comme une sortie, pour que l'inventaire du soir colle
+   a ce qu'il y a reellement en magasin. */
+function getBroken(date) {
+  return (S.losses || [])
+    .filter(function (l) { return l.date === date; })
+    .reduce(function (s, l) { return s + (l.plateaux || 0); }, 0);
+}
+
 /* Decomposition du calcul du stock theorique en fin de journee `date` :
    le point de depart, ce qui est entre, ce qui est sorti. Une seule
    fonction pour le calcul ET pour l'explication affichee a l'ecran —
@@ -89,9 +98,12 @@ function stockBasis(date) {
   const sold = S.sales
     .filter(function (x) { return inRange(x.date); })
     .reduce(function (s, x) { return s + x.quantity; }, 0);
+  const broken = (S.losses || [])
+    .filter(function (l) { return inRange(l.date); })
+    .reduce(function (s, l) { return s + (l.plateaux || 0); }, 0);
 
-  return { label: label, base: base, received: received, sold: sold,
-           theo: base + received - sold };
+  return { label: label, base: base, received: received, sold: sold, broken: broken,
+           theo: base + received - sold - broken };
 }
 
 /* Stock theorique en fin de journee : ce que le magasin devrait contenir
@@ -131,7 +143,7 @@ function activeDates(mo) {
   function add(list) {
     list.forEach(function (x) { if (x.date.startsWith(mo)) seen[x.date] = true; });
   }
-  add(S.receptions); add(S.sales);
+  add(S.receptions); add(S.sales); add(S.losses || []);
   add(S.daily.filter(function (d) { return d.closingStock != null; }));
   return Object.keys(seen).sort(function (a, b) { return b.localeCompare(a); });
 }

@@ -40,5 +40,11 @@ tbody tr:last-child td{border-bottom:none}
 .row-off{opacity:.5}
 .row-off:hover{opacity:.85}
 
+/* Lignes de depenses liees a une casse : on signale la liaison sans
+   deguiser la ligne. L'icone cadenas rappelle qu'elles ne se modifient
+   pas depuis la page Depenses. */
+.row-linked td{color:var(--tx2)}
+.link-tag{display:inline-block;margin-left:6px;font-size:.78rem;color:var(--tx3);cursor:help}
+
 /* Cellule secondaire sous un libelle principal */
 .cell-sub{display:block;color:var(--tx3);font-size:.77rem;line-height:1.35;margin-top:2px}

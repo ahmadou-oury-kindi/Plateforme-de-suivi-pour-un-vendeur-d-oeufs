@@ -37,6 +37,7 @@ const SYNC_COLLS = {
   expenses:   'id',
   receptions: 'id',
   sales:      'id',
+  losses:     'id',
   daily:      'date'
 };
 

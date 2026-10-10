@@ -91,6 +91,7 @@
 /* Titre de bloc : l'icone est posee sur une pastille discrete, ce qui la
    rattache au titre au lieu de la laisser flotter dans la marge. */
 .card h3,.panel h3{display:flex;align-items:center;gap:10px;margin-bottom:16px;color:var(--tx)}
+.card h3 .hd-sub,.panel h3 .hd-sub{margin-left:auto;font-size:.78rem;font-weight:500;color:var(--tx3);letter-spacing:0}
 .card h3 svg,.panel h3 svg{
   width:16px;height:16px;color:var(--gold);
   padding:6px;box-sizing:content-box;border-radius:9px;
@@ -159,6 +160,7 @@
   margin-top:18px;padding-top:14px;border-top:1px solid var(--bd);
   font-size:.8rem;color:var(--tx3);
 }
+.hero-foot-sep{margin:0 4px;color:var(--tx3)}
 
 /* Liste des dettes en deux colonnes : avec une vingtaine de creances,
    une carte pleine largeur par dette obligeait a defiler sans fin.

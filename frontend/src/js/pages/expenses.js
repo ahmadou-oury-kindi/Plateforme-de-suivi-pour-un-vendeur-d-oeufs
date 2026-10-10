@@ -43,14 +43,15 @@ function rExpenses() {
     ${list.length ? `<div class="card card-flat"><div class="tbl-wrap"><table>
       <thead><tr><th>Date</th><th>Description</th><th>Catégorie</th><th class="ta-r">Montant</th><th></th></tr></thead>
       <tbody>${list.map(function (e) {
-        return `<tr>
+        const linked = !!e.lossId;
+        return `<tr${linked ? ' class="row-linked"' : ''}>
           <td class="nowrap">${fmtD(e.date)}</td>
-          <td>${esc(e.description)}</td>
-          <td><span class="badge badge-gold">${esc(e.category)}</span></td>
+          <td>${esc(e.description)}${linked ? ' <span class="link-tag" title="Liée à une casse — gérez-la depuis Stock">&#128274;</span>' : ''}</td>
+          <td><span class="badge ${linked ? 'badge-red' : 'badge-gold'}">${esc(e.category)}</span></td>
           <td class="ta-r" style="font-weight:600">${cfa(e.amount)}</td>
           <td class="nowrap">
-            <button class="btn-icon edit" onclick="editExpense('${e.id}')" title="Modifier">&#9998;</button>
-            <button class="btn-icon" onclick="delExpense('${e.id}')" title="Supprimer">&times;</button>
+            <button class="btn-icon edit" onclick="editExpense('${e.id}')" title="${linked ? 'Liée à une casse — modifiez-la depuis Stock' : 'Modifier'}">&#9998;</button>
+            <button class="btn-icon" onclick="delExpense('${e.id}')" title="${linked ? 'Liée à une casse — supprimez-la depuis Stock' : 'Supprimer'}">&times;</button>
           </td>
         </tr>`;
       }).join('')}</tbody>
@@ -63,9 +64,13 @@ function rExpenses() {
 }
 
 /* Options de categorie. Une categorie disparue de CATS mais presente dans
-   une ancienne depense reste proposee, pour ne pas la perdre en modifiant. */
+   une ancienne depense reste proposee, pour ne pas la perdre en modifiant.
+   La categorie « Casse / Perte » est reservee aux depenses auto-generees :
+   on l'exclut du formulaire manuel pour qu'elle ne devienne pas un simple
+   libelle sans lien avec une declaration de casse. */
 function catOpts(sel) {
-  const list = (sel && !CATS.includes(sel)) ? CATS.concat([sel]) : CATS;
+  let list = CATS.filter(function (c) { return c !== LOSS_CAT; });
+  if (sel && !list.includes(sel)) list = list.concat([sel]);
   return list.map(function (c) {
     return '<option' + (c === sel ? ' selected' : '') + '>' + esc(c) + '</option>';
   }).join('');
@@ -105,6 +110,10 @@ function saveExpense() {
 function editExpense(id) {
   const e = S.expenses.find(function (x) { return x.id === id; });
   if (!e) return;
+  if (e.lossId) {
+    toast('Cette dépense est liée à une casse — modifiez-la depuis la page Stock', 'info');
+    return;
+  }
   openModal('Modifier la dépense', expenseForm(e) + `
     <div class="modal-ft">
       <button class="btn btn-s" onclick="closeModal()">Annuler</button>
@@ -125,6 +134,12 @@ function updExpense(id) {
 }
 
 async function delExpense(id) {
+  const e = S.expenses.find(function (x) { return x.id === id; });
+  if (!e) return;
+  if (e.lossId) {
+    toast('Cette dépense est liée à une casse — supprimez-la depuis la page Stock', 'info');
+    return;
+  }
   if (await showConfirm('Supprimer cette dépense ?')) {
     S.expenses = S.expenses.filter(function (x) { return x.id !== id; });
     save(); rExpenses(); toast('Dépense supprimée');

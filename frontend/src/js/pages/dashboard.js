@@ -55,6 +55,10 @@ function rDash() {
   const tone  = coverTone(cover);
   const lastRec = lastReception();
 
+  const moLoss = (S.losses || []).filter(function (l) { return l.date.startsWith(mo); });
+  const brokenCount = moLoss.reduce(function (s, l) { return s + (l.plateaux || 0); }, 0);
+  const brokenAmt   = moLoss.reduce(function (s, l) { return s + (l.amount || 0); }, 0);
+
   const nAct = activeClients().length;
   const nLoy = S.clients.filter(isLoyal).length;
   const enCours = countDebts('en_cours');
@@ -102,7 +106,9 @@ function rDash() {
         }) : `<div class="form-hint" style="margin-top:20px">Renseignez les plateaux/semaine de vos clients pour suivre la couverture du stock.</div>`}
         <div class="hero-foot">${lastRec
           ? `Dernière réception : <strong>${lastRec.quantity} plateaux</strong> ${agoLabel(lastRec.date)}`
-          : 'Aucune réception enregistrée'}</div>
+          : 'Aucune réception enregistrée'}${brokenCount
+            ? ` <span class="hero-foot-sep">·</span> Pertes du mois : <strong style="color:var(--red)">${brokenCount} ${plur(brokenCount, 'plateau', 'x')}</strong> <span class="muted">(${cfa(brokenAmt)})</span>`
+            : ''}</div>
       </div>
     </div>
 

@@ -18,8 +18,17 @@ const THEME_KEY = 'nj_theme';
 const SUPA_URL = 'https://vnvhupmczqwclgmdhqea.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZudmh1cG1jenF3Y2xnbWRocWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4ODcxNTgsImV4cCI6MjEwNDQ2MzE1OH0.HuxQ1YTqAvfyhar8CGcxypzuMNeho43LT-Gciqfks6c';
 
-/* Categories de depenses proposees dans le formulaire */
-const CATS = ['Transport', 'Téléphone', 'Loyer', 'Salaire', 'Électricité', 'Divers'];
+/* Categories de depenses proposees dans le formulaire.
+   « Casse / Perte » est reservee aux depenses auto-generees par une
+   declaration de casse (voir pages/stock.js) : elle apparait dans la
+   liste pour que les anciennes depenses creees avant la synchro restent
+   lisibles, mais le formulaire manuel ne devrait pas la selectionner. */
+const CATS = ['Transport', 'Téléphone', 'Loyer', 'Salaire', 'Électricité', 'Divers', 'Casse / Perte'];
+
+/* Libelle utilise par toutes les depenses liees a une casse. Centralise
+   pour qu'un changement d'intitule reste coherent entre creation,
+   affichage et filtres. */
+const LOSS_CAT = 'Casse / Perte';
 
 /* Types de client.
    v = valeur stockee · l = libelle long · p = pluriel (filtres)
