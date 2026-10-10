@@ -198,6 +198,34 @@
 }
 .debt-amt .tot{color:var(--tx3);font-size:.79rem}
 .debt-prog{margin-top:18px}
+.debt-detail-prog{margin-top:18px}
+
+/* Carte groupee par client dans la vue liste : clic -> vue detail.
+   On garde l'habillage de .card et on signale juste l'interaction. */
+.debt-client-card{cursor:pointer;transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease}
+.debt-client-card:hover{border-color:var(--gold-bd);transform:translateY(-1px)}
+.debt-client-card:focus{outline:2px solid var(--gold);outline-offset:2px}
+
+/* Breadcrumb de retour, place au-dessus de l'entete : on reste au niveau
+   de la liste des clients, pas dans un sous-ecran isole. Discret par
+   defaut, souligne au survol. */
+.debt-back{
+  display:inline-flex;align-items:center;gap:6px;
+  background:transparent;border:0;color:var(--tx3);
+  padding:4px 2px;margin-bottom:10px;cursor:pointer;
+  font-family:'Outfit',sans-serif;font-size:.88rem;letter-spacing:-.01em;
+}
+.debt-back:hover{color:var(--tx)}
+.debt-back:focus{outline:2px solid var(--gold);outline-offset:2px;border-radius:4px}
+
+/* En-tete de la vue detail : nom du client, badge global */
+.debt-detail-hd .debt-detail-title{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.debt-detail-hd .debt-detail-title h1{margin:0}
+
+/* Dans la vue detail, l'historique se lit comme un fil chronologique :
+   une dette par ligne, pleine largeur. On surcharge la grille auto-fill
+   de .debt-list qui, elle, sert a aerer la liste des clients. */
+#pg-debts .debt-detail-prog + .debt-list{grid-template-columns:1fr}
 
 /* Historique des reglements, en fil vertical */
 .pay-list{margin-top:16px;padding-left:16px;border-left:2px solid var(--bd)}

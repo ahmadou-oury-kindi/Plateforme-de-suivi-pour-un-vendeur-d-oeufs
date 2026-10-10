@@ -17,6 +17,7 @@ let searchQ    = '';          /* recherche clients */
 let filterType = 'all';       /* filtre par type de client */
 let filterStat = 'all';       /* filtre par statut de client */
 let filterDebt = 'all';       /* filtre sur les dettes */
+let debtClientView = null;    /* page Dettes : null = liste des clients, sinon id client dont on voit le detail */
 let cloudLoading = false;     /* premiere lecture du cloud en cours */
 
 /* Structure vide de reference. Toute nouvelle collection doit y figurer :

@@ -2,13 +2,40 @@
    PAGE — DETTES
    Chaque dette garde son montant d'origine ; les reglements s'ajoutent
    dans payments[]. La barre de progression montre la part deja reglee.
+
+   La page a deux vues :
+     · liste des clients, regroupant toutes leurs dettes en une carte ;
+     · detail d'un client, qui remonte chaque dette individuellement avec
+       ses paiements et les actions habituelles.
+   La variable debtClientView (voir state.js) choisit la vue.
    ===================================================================== */
 function rDebts() {
-  let list = [...S.debts];
-  if (filterDebt === 'en_cours')    list = list.filter(function (d) { return debtStatus(d) === 'en_cours'; });
-  else if (filterDebt === 'soldee') list = list.filter(function (d) { return debtStatus(d) === 'soldee'; });
-  list.sort(function (a, b) { return b.date.localeCompare(a.date); });
+  if (debtClientView) { rDebtDetail(debtClientView); return; }
+  rDebtList();
+}
 
+/* --- Vue liste : une carte par client -------------------------------- */
+function rDebtList() {
+  const groups = debtsByClient();
+
+  /* Reste a payer en premier, dates les plus recentes pour departager :
+     ce sont les clients a relancer qui restent sous les yeux. */
+  groups.sort(function (a, b) {
+    return (b.totalRemaining - a.totalRemaining)
+        || b.lastDate.localeCompare(a.lastDate);
+  });
+
+  let list = groups;
+  if (filterDebt === 'en_cours')    list = groups.filter(function (g) { return clientDebtStatus(g) === 'en_cours'; });
+  else if (filterDebt === 'soldee') list = groups.filter(function (g) { return clientDebtStatus(g) === 'soldee'; });
+
+  const nAll = groups.length;
+  const nEn  = groups.filter(function (g) { return clientDebtStatus(g) === 'en_cours'; }).length;
+  const nSo  = groups.filter(function (g) { return clientDebtStatus(g) === 'soldee'; }).length;
+
+  /* Les stats du haut gardent leur echelle « dettes » : total du,
+     dettes actives et dettes soldees — ces chiffres macro restent
+     parlants meme si l'affichage est maintenant groupe. */
   const enCours = countDebts('en_cours');
   const soldees = countDebts('soldee');
 
@@ -25,28 +52,107 @@ function rDebts() {
     </div>
 
     <div class="pills">
-      <button class="pill ${filterDebt === 'all' ? 'active' : ''}" onclick="filterDebt='all';rDebts()">Toutes (${S.debts.length})</button>
-      <button class="pill ${filterDebt === 'en_cours' ? 'active' : ''}" onclick="filterDebt='en_cours';rDebts()">En cours (${enCours})</button>
-      <button class="pill ${filterDebt === 'soldee' ? 'active' : ''}" onclick="filterDebt='soldee';rDebts()">Soldées (${soldees})</button>
+      <button class="pill ${filterDebt === 'all' ? 'active' : ''}" onclick="filterDebt='all';rDebts()">Tous (${nAll})</button>
+      <button class="pill ${filterDebt === 'en_cours' ? 'active' : ''}" onclick="filterDebt='en_cours';rDebts()">En cours (${nEn})</button>
+      <button class="pill ${filterDebt === 'soldee' ? 'active' : ''}" onclick="filterDebt='soldee';rDebts()">Soldés (${nSo})</button>
     </div>
 
-    ${list.length ? `<div class="debt-list">${list.map(debtCard).join('')}</div>` : emptyDebts()}`;
+    ${list.length ? `<div class="debt-list">${list.map(clientDebtCard).join('')}</div>` : emptyDebts()}`;
 }
 
-/* Carte d'une dette : entete, progression, historique des paiements */
+/* Carte groupee pour un client : clic -> vue detail */
+function clientDebtCard(g) {
+  const status = clientDebtStatus(g);
+  const c      = S.clients.find(function (x) { return x.id === g.clientId; });
+  const nD     = g.debts.length;
+
+  return `<div class="card debt-client-card" onclick="openDebtClient('${g.clientId}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDebtClient('${g.clientId}')}">
+    <div class="debt-hd">
+      <div>
+        <span class="debt-name">${esc(clientName(g.clientId))}</span>
+        ${c && !isActive(c) ? ' <span class="badge badge-gray">Inactif</span>' : ''}
+        <div class="debt-meta">${nD} ${plur(nD, 'dette')}</div>
+      </div>
+      <div class="debt-amt">
+        <span class="badge ${status === 'en_cours' ? 'badge-red' : 'badge-green'}">${status === 'en_cours' ? 'En cours' : 'Soldé'}</span>
+        <div class="rem">${cfa(g.totalRemaining)}</div>
+        <div class="tot">sur ${cfa(g.totalOwed)}</div>
+      </div>
+    </div>
+
+    <div class="debt-prog">
+      <div class="prog-lbl"><span>${cfa(g.totalPaid)} réglés</span><span>${pct(g.totalPaid, g.totalOwed).toFixed(0)} %</span></div>
+      ${prog(g.totalPaid, g.totalOwed)}
+    </div>
+  </div>`;
+}
+
+/* --- Vue detail : l'historique complet des dettes d'un client -------- */
+function rDebtDetail(clientId) {
+  const groups = debtsByClient();
+  const g = groups.find(function (x) { return x.clientId === clientId; });
+
+  /* Le client peut ne plus avoir de dettes (toutes supprimees pendant la
+     navigation) : on retombe automatiquement sur la liste. */
+  if (!g) { debtClientView = null; rDebtList(); return; }
+
+  const c      = S.clients.find(function (x) { return x.id === clientId; });
+  const status = clientDebtStatus(g);
+  const debts  = [...g.debts].sort(function (a, b) { return b.date.localeCompare(a.date); });
+
+  document.getElementById('pg-debts').innerHTML = `
+    <button class="debt-back" onclick="closeDebtClient()" aria-label="Retour à la liste des clients">&larr; Clients</button>
+    <div class="pg-hd debt-detail-hd">
+      <div class="debt-detail-title">
+        <h1>${esc(clientName(clientId))}</h1>
+        ${c && !isActive(c) ? '<span class="badge badge-gray">Inactif</span>' : ''}
+        <span class="badge ${status === 'en_cours' ? 'badge-red' : 'badge-green'}">${status === 'en_cours' ? 'En cours' : 'Soldé'}</span>
+      </div>
+      <button class="btn btn-p" onclick="addDebt('${clientId}')">${icon('plus')} Nouvelle dette</button>
+    </div>
+
+    <div class="stats">
+      ${st({ tone: 'red',   icon: 'alert',       value: cfa(g.totalRemaining), count: g.totalRemaining, fmt: 'cfa', label: 'Reste à payer' })}
+      ${st({ tone: 'gold',  icon: 'wallet',      value: cfa(g.totalOwed),      count: g.totalOwed,      fmt: 'cfa', label: 'Total dû' })}
+      ${st({ tone: 'green', icon: 'checkCircle', value: cfa(g.totalPaid),      count: g.totalPaid,      fmt: 'cfa', label: 'Total réglé' })}
+    </div>
+
+    <div class="debt-prog debt-detail-prog">
+      <div class="prog-lbl"><span>${g.debts.length} ${plur(g.debts.length, 'dette')} enregistrée${g.debts.length > 1 ? 's' : ''}</span><span>${pct(g.totalPaid, g.totalOwed).toFixed(0)} %</span></div>
+      ${prog(g.totalPaid, g.totalOwed)}
+    </div>
+
+    <div class="debt-list">${debts.map(debtCard).join('')}</div>`;
+}
+
+function openDebtClient(id) {
+  debtClientView = id;
+  render();                      /* passe par render() pour rejouer l'animation d'entree */
+}
+
+function closeDebtClient() {
+  debtClientView = null;
+  render();
+}
+
+/* Carte d'une dette : entete, progression, historique des paiements.
+   Utilisee dans la vue detail d'un client (plus jamais dans la liste
+   principale, qui groupe par client). */
 function debtCard(d) {
   const rem    = debtRemaining(d);
   const paid   = debtPaid(d);
   const status = debtStatus(d);
   const pays   = d.payments || [];
-  const c      = S.clients.find(function (x) { return x.id === d.clientId; });
+
+  /* Les anciennes dettes n'ont ni plateaux ni prix unitaire : on
+     n'affiche la ligne de detail que lorsque les deux sont renseignes. */
+  const hasBreakdown = d.plateaux != null && d.prixUnitaire != null;
 
   return `<div class="card">
     <div class="debt-hd">
       <div>
-        <span class="debt-name">${esc(clientName(d.clientId))}</span>
-        ${c && !isActive(c) ? ' <span class="badge badge-gray">Inactif</span>' : ''}
-        <div class="debt-meta">${d.description ? esc(d.description) + ' — ' : ''}${fmtD(d.date)}</div>
+        <span class="debt-name">${cfa(d.amount)}</span>
+        <div class="debt-meta">${d.description ? esc(d.description) + ' — ' : ''}${fmtD(d.date)}${hasBreakdown ? ` · ${num(d.plateaux)} ${plur(d.plateaux, 'plateau', 'x')} × ${cfa(d.prixUnitaire)}` : ''}</div>
       </div>
       <div class="debt-amt">
         <span class="badge ${status === 'en_cours' ? 'badge-red' : 'badge-green'}">${status === 'en_cours' ? 'En cours' : 'Soldée'}</span>
@@ -78,9 +184,9 @@ function emptyDebts() {
   if (filterDebt !== 'all') {
     return emptyState({
       icon: 'wallet', small: true,
-      title: filterDebt === 'en_cours' ? 'Aucune dette en cours' : 'Aucune dette soldée',
-      text: filterDebt === 'en_cours' ? 'Tout est réglé — rien à recouvrer pour le moment.' : 'Aucune dette n\'a encore été soldée.',
-      action: `<button class="btn btn-s" onclick="filterDebt='all';rDebts()">Voir toutes les dettes</button>`
+      title: filterDebt === 'en_cours' ? 'Aucun client avec dette en cours' : 'Aucun client entièrement soldé',
+      text: filterDebt === 'en_cours' ? 'Tout est réglé — rien à recouvrer pour le moment.' : 'Aucun client n\'a encore soldé l\'ensemble de ses dettes.',
+      action: `<button class="btn btn-s" onclick="filterDebt='all';rDebts()">Voir tous les clients</button>`
     });
   }
   return emptyState({
@@ -117,7 +223,19 @@ function filterClientSel() {
         : 'Aucun client ne correspond à cette recherche.');
 }
 
-function addDebt() {
+/* Recalcule le montant a partir du nombre de plateaux et du prix
+   unitaire. Un des deux champs vide efface le total : on ne devine pas
+   une valeur pour l'utilisateur. */
+function updDebtAmount() {
+  const n = document.getElementById('m-plateaux').value;
+  const p = document.getElementById('m-prixu').value;
+  const amt = document.getElementById('m-amount');
+  if (n === '' || p === '') { amt.value = ''; return; }
+  const total = Math.round(parseFloat(n) * parseFloat(p));
+  amt.value = isFinite(total) && total >= 0 ? total : '';
+}
+
+function addDebt(presetClientId) {
   const act = activeClients().length;
   if (!act) {
     toast(S.clients.length ? "Aucun client actif — réactivez un client d'abord" : "Ajoutez d'abord un client", 'err');
@@ -129,25 +247,48 @@ function addDebt() {
       <select id="m-client" style="margin-top:6px">${clientOpts('')}</select>
       <div class="form-hint" id="m-cinfo">${act} ${plur(act, 'client')} ${plur(act, 'actif', 's')} · les inactifs ne sont pas proposés</div>
     </div>
-    <div class="form-g"><label>Montant (FCFA) *</label><input id="m-amount" type="number" min="0"></div>
-    <div class="form-g"><label>Description</label><input id="m-desc" placeholder="Ex: Achat 20 plateaux"></div>
+    <div class="form-row">
+      <div class="form-g"><label>Nombre de plateaux *</label><input id="m-plateaux" type="number" min="0" step="1" oninput="updDebtAmount()"></div>
+      <div class="form-g"><label>Prix par plateau (FCFA) *</label><input id="m-prixu" type="number" min="0" oninput="updDebtAmount()"></div>
+    </div>
+    <div class="form-g"><label>Montant (FCFA)</label><input id="m-amount" type="number" readonly><div class="form-hint">Calculé automatiquement : plateaux × prix.</div></div>
+    <div class="form-g"><label>Description</label><input id="m-desc" placeholder="Ex: Livraison du 10/02"></div>
     <div class="form-g"><label>Date</label><input id="m-date" type="date" value="${today()}"></div>
     <div class="modal-ft">
       <button class="btn btn-s" onclick="closeModal()">Annuler</button>
       <button class="btn btn-p" onclick="saveDebt()">Enregistrer</button>
     </div>`);
+
+  /* Pre-selection du client quand on ouvre le formulaire depuis la vue
+     detail : le client courant est propose d'office. Si ce client n'est
+     plus actif, on laisse la selection vide — le select ne contient que
+     les actifs — pour forcer un choix volontaire. */
+  if (presetClientId) {
+    const sel = document.getElementById('m-client');
+    if ([...sel.options].some(function (o) { return o.value === presetClientId; })) {
+      sel.value = presetClientId;
+    }
+  }
 }
 
 function saveDebt() {
   const cid = val('m-client');
   if (!cid) { toast('Sélectionnez un client', 'err'); return; }
-  const amt = numVal('m-amount');
-  if (!amt || amt <= 0) { toast('Montant invalide', 'err'); return; }
+
+  const n = numVal('m-plateaux');
+  const p = numVal('m-prixu');
+  if (isNaN(n) || n <= 0) { toast('Nombre de plateaux invalide', 'err'); return; }
+  if (isNaN(p) || p <= 0) { toast('Prix par plateau invalide', 'err'); return; }
+
+  const amt = Math.round(n * p);
+  if (!amt || amt <= 0) { toast('Montant calculé invalide', 'err'); return; }
 
   S.debts.push({
     id: gid(),
     clientId: cid,
     amount: amt,
+    plateaux: n,
+    prixUnitaire: p,
     description: val('m-desc'),
     date: val('m-date') || today(),
     payments: []

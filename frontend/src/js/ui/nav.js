@@ -16,6 +16,9 @@ const PAGES = {
 
 function nav(p) {
   curPage = p;
+  /* Un clic sur « Dettes » dans la barre laterale ramene toujours a la
+     liste des clients, meme si une vue detail etait ouverte avant. */
+  if (p === 'debts') debtClientView = null;
   document.querySelectorAll('.page').forEach(function (x) { x.hidden = true; });
   document.getElementById('pg-' + p).hidden = false;
   document.querySelectorAll('.nav-item').forEach(function (x) {
