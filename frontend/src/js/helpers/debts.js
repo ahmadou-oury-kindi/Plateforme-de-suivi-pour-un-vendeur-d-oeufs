@@ -40,7 +40,14 @@ function clientName(id) {
    en une seule carte. On applique la meme regle que totalOwed() : un
    trop-percu sur une dette ne vient pas diminuer le reste des autres (on
    plancher a zero par dette), sans quoi un paiement en avance effacerait
-   une creance distincte. */
+   une creance distincte.
+
+   On tient deux niveaux de compteurs :
+     · total*     : toutes les dettes du client, historique compris — sert
+                    aux listings par exercice et aux rapports ;
+     · active*    : uniquement les dettes NON soldees — c'est ce qu'affiche
+                    la carte du client, pour que la barre de progression
+                    refletisse la situation en cours et non le passe. */
 function debtsByClient() {
   const groups = {};
   const order = [];
@@ -50,18 +57,26 @@ function debtsByClient() {
       g = groups[d.clientId] = {
         clientId: d.clientId,
         debts: [],
-        totalOwed: 0,
-        totalPaid: 0,
-        totalRemaining: 0,
+        totalOwed: 0, totalPaid: 0, totalRemaining: 0,
+        activeOwed: 0, activePaid: 0, activeRemaining: 0, activeCount: 0,
+        lastActiveDate: '',
         lastDate: ''
       };
       order.push(d.clientId);
     }
     g.debts.push(d);
+    const paid = debtPaid(d);
+    const rem  = debtRemaining(d);
     g.totalOwed += d.amount;
-    g.totalPaid += debtPaid(d);
-    const r = debtRemaining(d);
-    g.totalRemaining += r > 0 ? r : 0;
+    g.totalPaid += paid;
+    g.totalRemaining += rem > 0 ? rem : 0;
+    if (debtStatus(d) === 'en_cours') {
+      g.activeOwed      += d.amount;
+      g.activePaid      += paid;
+      g.activeRemaining += rem > 0 ? rem : 0;
+      g.activeCount     += 1;
+      if (!g.lastActiveDate || (d.date || '') > g.lastActiveDate) g.lastActiveDate = d.date || '';
+    }
     if (!g.lastDate || (d.date || '') > g.lastDate) g.lastDate = d.date || '';
   });
   return order.map(function (id) { return groups[id]; });
@@ -70,5 +85,5 @@ function debtsByClient() {
 /* Statut global : tant qu'une seule dette reste a payer, le client est
    en cours ; soldee signifie que toutes ses dettes le sont. */
 function clientDebtStatus(g) {
-  return g.totalRemaining > 0 ? 'en_cours' : 'soldee';
+  return g.activeCount > 0 ? 'en_cours' : 'soldee';
 }

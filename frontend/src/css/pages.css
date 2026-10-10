@@ -225,7 +225,49 @@
 /* Dans la vue detail, l'historique se lit comme un fil chronologique :
    une dette par ligne, pleine largeur. On surcharge la grille auto-fill
    de .debt-list qui, elle, sert a aerer la liste des clients. */
-#pg-debts .debt-detail-prog + .debt-list{grid-template-columns:1fr}
+#pg-debts .debt-section-hd + .debt-list,
+#pg-debts .debt-archive .debt-list{grid-template-columns:1fr}
+
+/* Secondaire : nombre de dettes soldees mentionne a cote des actives
+   sur la carte, en gris, pour ne pas eclipser l'info principale. */
+.debt-meta-sec{color:var(--tx3);font-size:.78rem}
+
+/* En-tete de section a l'interieur de la vue detail. Discret : on separe
+   « En cours » et « Historique soldé » sans en faire des titres de page. */
+.debt-section-hd{
+  font-family:'Outfit',sans-serif;font-size:.95rem;font-weight:600;
+  letter-spacing:-.01em;color:var(--tx2);
+  display:flex;align-items:center;gap:8px;
+  margin:22px 0 12px 0;
+}
+.debt-section-hd--inline{display:inline-flex;margin:0}
+.debt-section-count{color:var(--tx3);font-weight:500}
+.debt-section-empty{
+  color:var(--tx3);font-size:.9rem;
+  display:flex;align-items:center;gap:8px;
+  padding:14px 0 4px 0;
+}
+
+/* Historique replie par defaut. summary visible, cliquable, sans puce
+   native (differents navigateurs la dessinent differemment). */
+.debt-archive{margin-top:4px}
+.debt-archive>summary{
+  list-style:none;cursor:pointer;
+  padding:10px 0;border-top:1px solid var(--bd);
+}
+.debt-archive>summary::-webkit-details-marker{display:none}
+.debt-archive>summary::before{
+  content:'▸';display:inline-block;color:var(--tx3);
+  margin-right:8px;transition:transform .18s ease;
+}
+.debt-archive[open]>summary::before{transform:rotate(90deg)}
+.debt-archive[open]>summary{border-bottom:1px solid var(--bd)}
+
+/* Les cartes d'archive se font un peu plus discretes : contenu complet
+   mais tonalite grisee, pour ne pas voler l'attention des dettes en cours. */
+.debt-list--archive{margin-top:14px}
+.debt-list--archive>.card{opacity:.78}
+.debt-list--archive>.card:hover{opacity:1}
 
 /* Historique des reglements, en fil vertical */
 .pay-list{margin-top:16px;padding-left:16px;border-left:2px solid var(--bd)}

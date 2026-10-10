@@ -18,10 +18,13 @@ function rDebts() {
 function rDebtList() {
   const groups = debtsByClient();
 
-  /* Reste a payer en premier, dates les plus recentes pour departager :
-     ce sont les clients a relancer qui restent sous les yeux. */
+  /* Reste a payer en premier, puis dates les plus recentes pour
+     departager : ce sont les clients a relancer qui restent en haut.
+     On tri sur activeRemaining : un client qui a tout solde glisse en
+     bas, meme s'il a eu de grosses dettes par le passe. */
   groups.sort(function (a, b) {
-    return (b.totalRemaining - a.totalRemaining)
+    return (b.activeRemaining - a.activeRemaining)
+        || b.lastActiveDate.localeCompare(a.lastActiveDate)
         || b.lastDate.localeCompare(a.lastDate);
   });
 
@@ -60,29 +63,43 @@ function rDebtList() {
     ${list.length ? `<div class="debt-list">${list.map(clientDebtCard).join('')}</div>` : emptyDebts()}`;
 }
 
-/* Carte groupee pour un client : clic -> vue detail */
+/* Carte groupee pour un client : clic -> vue detail.
+   La carte parle de la situation COURANTE : seuls les montants des dettes
+   non soldees sont additionnes, et la barre reflete le reglement en cours.
+   L'historique soldee reste consultable dans la vue detail. */
 function clientDebtCard(g) {
   const status = clientDebtStatus(g);
   const c      = S.clients.find(function (x) { return x.id === g.clientId; });
-  const nD     = g.debts.length;
+  const soldee = status === 'soldee';
+  const nT     = g.debts.length;
+
+  /* Compteur : on affiche d'abord ce qui est a surveiller (dettes en
+     cours). Quand tout est solde, on bascule sur le total historique. */
+  const meta = soldee
+    ? `${nT} ${plur(nT, 'dette')} ${plur(nT, 'soldée')}`
+    : `${g.activeCount} ${plur(g.activeCount, 'dette')} en cours`
+      + (nT > g.activeCount ? ` <span class="debt-meta-sec">· ${nT - g.activeCount} ${plur(nT - g.activeCount, 'soldée')}</span>` : '');
 
   return `<div class="card debt-client-card" onclick="openDebtClient('${g.clientId}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDebtClient('${g.clientId}')}">
     <div class="debt-hd">
       <div>
         <span class="debt-name">${esc(clientName(g.clientId))}</span>
         ${c && !isActive(c) ? ' <span class="badge badge-gray">Inactif</span>' : ''}
-        <div class="debt-meta">${nD} ${plur(nD, 'dette')}</div>
+        <div class="debt-meta">${meta}</div>
       </div>
       <div class="debt-amt">
-        <span class="badge ${status === 'en_cours' ? 'badge-red' : 'badge-green'}">${status === 'en_cours' ? 'En cours' : 'Soldé'}</span>
-        <div class="rem">${cfa(g.totalRemaining)}</div>
-        <div class="tot">sur ${cfa(g.totalOwed)}</div>
+        <span class="badge ${soldee ? 'badge-green' : 'badge-red'}">${soldee ? 'Soldé' : 'En cours'}</span>
+        <div class="rem">${cfa(g.activeRemaining)}</div>
+        ${soldee ? '' : `<div class="tot">sur ${cfa(g.activeOwed)}</div>`}
       </div>
     </div>
 
     <div class="debt-prog">
-      <div class="prog-lbl"><span>${cfa(g.totalPaid)} réglés</span><span>${pct(g.totalPaid, g.totalOwed).toFixed(0)} %</span></div>
-      ${prog(g.totalPaid, g.totalOwed)}
+      <div class="prog-lbl">
+        <span>${soldee ? 'Tout réglé' : cfa(g.activePaid) + ' réglés'}</span>
+        <span>${soldee ? '100 %' : pct(g.activePaid, g.activeOwed).toFixed(0) + ' %'}</span>
+      </div>
+      ${soldee ? prog(1, 1) : prog(g.activePaid, g.activeOwed)}
     </div>
   </div>`;
 }
@@ -98,7 +115,21 @@ function rDebtDetail(clientId) {
 
   const c      = S.clients.find(function (x) { return x.id === clientId; });
   const status = clientDebtStatus(g);
-  const debts  = [...g.debts].sort(function (a, b) { return b.date.localeCompare(a.date); });
+  const soldee = status === 'soldee';
+
+  /* Deux groupes : les dettes qui courent, en haut, puis l'archive, dans
+     un bloc replie par defaut. Les deux triees de la plus recente a la
+     plus ancienne. */
+  const sortByDateDesc = function (a, b) { return b.date.localeCompare(a.date); };
+  const actives = g.debts.filter(function (d) { return debtStatus(d) === 'en_cours'; }).sort(sortByDateDesc);
+  const archive = g.debts.filter(function (d) { return debtStatus(d) === 'soldee'; }).sort(sortByDateDesc);
+
+  /* Les totaux recapitulatifs reflettent la carte : uniquement les
+     dettes en cours. L'historique soldee est consultable plus bas sans
+     polluer les chiffres du haut. */
+  const progHd = soldee
+    ? `<div class="prog-lbl"><span>Tout soldé</span><span>100 %</span></div>${prog(1, 1)}`
+    : `<div class="prog-lbl"><span>${actives.length} ${plur(actives.length, 'dette')} en cours</span><span>${pct(g.activePaid, g.activeOwed).toFixed(0)} %</span></div>${prog(g.activePaid, g.activeOwed)}`;
 
   document.getElementById('pg-debts').innerHTML = `
     <button class="debt-back" onclick="closeDebtClient()" aria-label="Retour à la liste des clients">&larr; Clients</button>
@@ -106,23 +137,32 @@ function rDebtDetail(clientId) {
       <div class="debt-detail-title">
         <h1>${esc(clientName(clientId))}</h1>
         ${c && !isActive(c) ? '<span class="badge badge-gray">Inactif</span>' : ''}
-        <span class="badge ${status === 'en_cours' ? 'badge-red' : 'badge-green'}">${status === 'en_cours' ? 'En cours' : 'Soldé'}</span>
+        <span class="badge ${soldee ? 'badge-green' : 'badge-red'}">${soldee ? 'Soldé' : 'En cours'}</span>
       </div>
       <button class="btn btn-p" onclick="addDebt('${clientId}')">${icon('plus')} Nouvelle dette</button>
     </div>
 
     <div class="stats">
-      ${st({ tone: 'red',   icon: 'alert',       value: cfa(g.totalRemaining), count: g.totalRemaining, fmt: 'cfa', label: 'Reste à payer' })}
-      ${st({ tone: 'gold',  icon: 'wallet',      value: cfa(g.totalOwed),      count: g.totalOwed,      fmt: 'cfa', label: 'Total dû' })}
-      ${st({ tone: 'green', icon: 'checkCircle', value: cfa(g.totalPaid),      count: g.totalPaid,      fmt: 'cfa', label: 'Total réglé' })}
+      ${st({ tone: 'red',   icon: 'alert',       value: cfa(g.activeRemaining), count: g.activeRemaining, fmt: 'cfa', label: 'Reste à payer' })}
+      ${st({ tone: 'gold',  icon: 'wallet',      value: cfa(g.activeOwed),      count: g.activeOwed,      fmt: 'cfa', label: 'Dû (en cours)' })}
+      ${st({ tone: 'green', icon: 'checkCircle', value: cfa(g.activePaid),      count: g.activePaid,      fmt: 'cfa', label: 'Déjà réglé' })}
     </div>
 
-    <div class="debt-prog debt-detail-prog">
-      <div class="prog-lbl"><span>${g.debts.length} ${plur(g.debts.length, 'dette')} enregistrée${g.debts.length > 1 ? 's' : ''}</span><span>${pct(g.totalPaid, g.totalOwed).toFixed(0)} %</span></div>
-      ${prog(g.totalPaid, g.totalOwed)}
-    </div>
+    <div class="debt-prog debt-detail-prog">${progHd}</div>
 
-    <div class="debt-list">${debts.map(debtCard).join('')}</div>`;
+    ${actives.length ? `
+      <h3 class="debt-section-hd">${icon('clock')} En cours <span class="debt-section-count">(${actives.length})</span></h3>
+      <div class="debt-list">${actives.map(debtCard).join('')}</div>
+    ` : `
+      <div class="debt-section-empty">${icon('checkCircle')} Aucune dette en cours — tout est soldé.</div>
+    `}
+
+    ${archive.length ? `
+      <details class="debt-archive"${soldee && !actives.length ? ' open' : ''}>
+        <summary><span class="debt-section-hd debt-section-hd--inline">${icon('checkCircle')} Historique soldé <span class="debt-section-count">(${archive.length})</span></span></summary>
+        <div class="debt-list debt-list--archive">${archive.map(debtCard).join('')}</div>
+      </details>
+    ` : ''}`;
 }
 
 function openDebtClient(id) {
